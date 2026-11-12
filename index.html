@@ -355,6 +355,7 @@ button{font:inherit;color:inherit}
       </div>
       <div class="card">
         <h3>Te recomendamos</h3>
+        <p class="note" id="intNote" style="margin-top:-4px" hidden>En el intensivo, de Agronomía solo se ofertan <b>Suelos</b> y <b>Diseño de Experimentos</b>. Lo demás son materias de Sociales, Matemática y Química.</p>
         <p class="note" id="recNote" style="margin-top:-4px" hidden></p>
         <div class="rec" id="recList"></div>
         <div class="tot" id="recTot"></div>
@@ -663,14 +664,18 @@ function missing(c, A, uc){
   if (c.minUC && uc < c.minUC) m.push(`${c.minUC} U.C. aprobadas`);
   return m;
 }
-function recommend(A, lim, excl, extraE=0, near=true){
+// Intensivo: del departamento solo ofertan Suelos y Diseño de Experimentos; lo demás es de Sociales (códigos 10…),
+// Matemática y Física (08…) y Química (09…). Las electivas y el Servicio Comunitario no entran.
+const INT_DEP = ["0524402T", "0523508T"];
+const intOK = c => !c.extra && (INT_DEP.includes(c.key) || /^(08|09|10)/.test(c.code));
+function recommend(A, lim, excl, extraE=0, near=true, ok=null){
   const uc = ucOf(A, extraE), lvl = levelOf(uc), top = near ? lvl + AHEAD : 99;
-  const avail = CORE.filter(c => !A.has(c.key) && !excl.has(c.key) && missing(c,A,uc).length===0);
+  const avail = CORE.filter(c => !A.has(c.key) && !excl.has(c.key) && (!ok || ok(c)) && missing(c,A,uc).length===0);
   const cand = avail.filter(c => c.sem <= top); const candSet = new Set(cand.map(c=>c.key));
   const eA = electCount(A, extraE);
   const eligE = ELECT.filter(e => !A.has(e.key) && !excl.has(e.key));
   const slots = [];
-  if (eligE.length) for (let i = eA; i < elAllowed(A); i++) if (EL_SLOTS[i].sem <= top)
+  if (eligE.length && !ok) for (let i = eA; i < elAllowed(A); i++) if (EL_SLOTS[i].sem <= top)
     slots.push({key:"SLOT"+i, name:EL_SLOTS[i].name, uc:ELECT_UC, sem:EL_SLOTS[i].sem, slot:true, prio:1, pre:[], co:[], options:eligE});
   const pr = c => c.slot ? c.prio : CHAIN[c.key];
   const pool = [...cand, ...slots].sort((p,q) => pr(q) - pr(p) || p.sem - q.sem || (q.slot?0:UNLOCK[q.key]) - (p.slot?0:UNLOCK[p.key]));
@@ -688,7 +693,7 @@ function recommend(A, lim, excl, extraE=0, near=true){
     if (!un) continue;
     use.forEach(x=>{ picked.push(x); pk.add(x.key); }); pu += un[0]; pn += un[1];
   }
-  if (!picked.length && near) { const r = recommend(A, lim, excl, extraE, false); r.cand = avail; return r; }
+  if (!picked.length && near) { const r = recommend(A, lim, excl, extraE, false, ok); r.cand = avail; return r; }
   return {picked, uc:pu, n:pn, cand:avail, eligE, pk};
 }
 function projection(){
@@ -901,7 +906,7 @@ function renderInscribir(){
   const L = S.lim[S.mode];
   $("mSem").setAttribute("aria-pressed", S.mode==="sem"); $("mInt").setAttribute("aria-pressed", S.mode==="int");
   $("oUC").textContent = L.uc; $("oN").textContent = L.n;
-  const r = recommend(plusE(), L, S.x);
+  const r = recommend(plusE(), L, S.x, 0, true, S.mode === "int" ? intOK : null);
   $("recList").innerHTML = r.picked.length ? r.picked.map(c => `<div class="ri">
       <span class="chip" style="${chipStyle(c.slot?0:c.sem)}">${c.slot?"EL":ROMAN[c.sem]}</span>
       <div class="tx"><div class="nm" style="font-weight:600">${c.name}${c.code?` <span class="code">${c.code}</span>`:""}</div>
@@ -910,6 +915,7 @@ function renderInscribir(){
         ${c.slot?`<div class="opts"><div>${optsText(c)}</div></div>`:""}</div>
       <span class="uc">${c.uc}</span></div>`).join("")
     : `<div class="empty">${CORE.every(c=>S.a.has(c.key)) ? "¡Ya aprobaste todas las materias! Te queda el Trabajo de Aplicación Profesional: Proyecto Especial de Grado o Pasantías." : "No hay materias disponibles con estos límites. Sube el máximo de U.C. o revisa las que marcaste como no ofertadas."}</div>`;
+  $("intNote").hidden = S.mode !== "int";
   $("recNote").hidden = !S.e.size;
   if (S.e.size) $("recNote").textContent = `Para el próximo semestre, suponiendo que apruebas las ${S.e.size} materia${S.e.size>1?"s":""} que estás cursando.`;
   $("recTot").innerHTML = r.picked.length ? `<span>${r.n} materia${r.n!==1?"s":""}</span><b>${r.uc} U.C.</b>` : "";
