@@ -1,0 +1,16 @@
+{
+  "name": "Pensum Agronomía UNET",
+  "short_name": "Pensum Agro",
+  "description": "Marca tus materias aprobadas y descubre qué inscribir según las prelaciones.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#EBF0DF",
+  "theme_color": "#EBF0DF",
+  "icons": [
+    {"src": "icons/icon-192.png?v=1", "sizes": "192x192", "type": "image/png"},
+    {"src": "icons/icon-512.png?v=1", "sizes": "512x512", "type": "image/png"},
+    {"src": "icons/icon-maskable-512.png?v=1", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

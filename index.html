@@ -1,0 +1,1478 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pensum Agronomía UNET</title>
+<meta name="description" content="Marca tus materias aprobadas de Ingeniería Agronómica UNET y descubre qué inscribir según las prelaciones.">
+<meta name="theme-color" content="#EBF0DF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Pensum Agro">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png?v=1">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: app móvil de una columna (máx. 760px) sobre un mapa de curvas de nivel en verde salvia. Bajo el título,
+   una franja de campo: surcos con plantas que crecen y el corte del suelo; un tractor pasa de vez en cuando sembrando.
+   Al final de la página, riego por aspersión sobre las plantas y, bajo tierra, la tubería, raíces, horizontes A, B y C y una lombriz.
+   Tarjetas claras, tinta verde bosque, títulos en slab (Zilla Slab) como el logo de Gente del Agro.
+   Las materias aprobadas se tachan con una ramita con hojas que crece sobre el nombre */
+:root{
+  --bg:#EBF0DF; --surface:rgba(252,253,246,.96); --surface-2:#F2F6EA; --sunk:#E7EDDB;
+  --ink:#1D301C; --muted:#5B6A55; --line:rgba(45,80,38,.13); --line-strong:rgba(45,80,38,.27);
+  --leaf:#3F7D24; --leaf-deep:#2B571A; --leaf-soft:rgba(63,125,36,.11);
+  --sprout:#8DC060;
+  --soil:#7A522F; --soil-soft:rgba(122,82,47,.11);
+  --wheat:#E3AE2A; --wheat-soft:rgba(227,174,42,.2); --wheat-ink:#6E5008;
+  --sky:#2F6F95; --sky-soft:rgba(47,111,149,.1);
+  --rose:#A83A45; --rose-soft:rgba(168,58,69,.09);
+  --stone:rgba(91,106,85,.11); --stone-ink:#56634F;
+  --f-display:"Zilla Slab",Rockwell,Georgia,serif;
+  --f-body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.4;-webkit-text-size-adjust:100%;min-height:100vh;display:flex;flex-direction:column}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+img{max-width:100%}
+#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.land{position:absolute;top:0;left:0;right:0;height:230px;z-index:1;pointer-events:none}
+.land canvas{display:block;width:100%;height:100%}
+.wrap{position:relative;z-index:2;flex:1 0 auto;width:100%;max-width:760px;margin:0 auto;padding-top:env(safe-area-inset-top,0px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:4px}
+.under{position:relative;z-index:2;flex:none;height:calc(262px + env(safe-area-inset-bottom,0px));pointer-events:none}
+.under canvas{display:block;width:100%;height:100%}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--leaf);outline-offset:2px}
+@keyframes sway{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+
+/* Cabecera */
+.top{display:flex;align-items:center;gap:12px;padding-block:18px 80px}
+.ga{flex:none;height:70px;width:auto;display:block}
+.brand{min-width:0}
+.brand h1{font-family:var(--f-display);font-weight:700;font-size:28px;line-height:.98;margin:0;letter-spacing:-.3px;color:var(--leaf-deep)}
+.brand p{margin:6px 0 0;font-size:12.5px;color:var(--muted);font-weight:500}
+.top .la{height:44px;width:auto;margin-left:auto;flex:none;display:block}
+
+/* Resumen */
+.sum{background:var(--surface);border:1px solid var(--line-strong);border-radius:22px;padding:18px 18px 15px;margin-block:12px 4px;display:grid;gap:12px;box-shadow:0 18px 30px -26px rgba(43,87,26,.55)}
+.sum .big{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sum .big b{font-family:var(--f-display);font-weight:700;font-size:58px;line-height:.85;color:var(--leaf-deep);font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.sum .big span{color:var(--muted);font-size:14.5px}
+.bar{height:12px;border-radius:99px;background:var(--sunk);overflow:hidden;display:flex;box-shadow:inset 0 1px 2px rgba(43,87,26,.12)}
+.bar i{display:block;height:100%;border-right:2px solid #FCFDF6}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stat{border-radius:14px;padding:9px 12px;min-width:0;background:var(--sunk)}
+.stat b{display:block;font-family:var(--f-display);font-weight:700;font-size:25px;line-height:1.15;font-variant-numeric:tabular-nums}
+.stat:nth-child(1) b{color:var(--leaf-deep)} .stat:nth-child(2) b{color:var(--sky)} .stat:nth-child(3) b{color:var(--soil)}
+.stat span{font-size:11.5px;color:var(--muted);line-height:1.25;display:block;font-weight:500}
+.sync{font-size:12px;color:var(--muted)}
+
+/* Pestañas */
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;padding-block:10px 14px;transition:background .2s}
+.tabs.stuck{background:linear-gradient(rgba(237,242,228,.97) 76%,rgba(237,242,228,0))}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border:1px solid var(--line-strong);border-radius:99px;padding:4px;gap:2px}
+.seg button{border:0;background:transparent;border-radius:99px;padding:9px 4px;font-weight:600;font-size:14.5px;line-height:1.1;cursor:pointer;color:var(--muted);transition:background .2s,color .2s}
+.seg button[aria-selected="true"]{background:var(--leaf);color:#fff}
+
+/* Semestres y filas */
+.sem{margin-block:22px}
+.semh{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.chip{flex:none;min-width:40px;height:28px;padding:0 9px;border-radius:99px;display:inline-grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:15px;color:var(--ink)}
+.semh h2{font-family:var(--f-display);font-size:22px;margin:0;font-weight:700;line-height:1.1}
+.semh .meta{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:1px}
+.semh .all,.ghost{margin-left:auto;border:1px solid var(--line-strong);background:var(--surface);color:var(--leaf-deep);border-radius:99px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+.integ{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:var(--muted);margin:0 2px 8px}
+.integ i{flex:none;width:4px;align-self:stretch;border-radius:2px;background:var(--bc)}
+.integ b{color:var(--ink);font-weight:600}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:transparent;padding:11px 14px;cursor:pointer;min-height:58px;transition:background .2s}
+.row:first-child{border-top:0}
+.row:hover{background:rgba(63,125,36,.05)}
+.row.blk{box-shadow:inset 4px 0 0 var(--bc)}
+/* Marca: círculo vacío = pendiente · círculo verde con visto = aprobada · brote en su montículo = inscrita (sembrada, cursando) */
+.ck{flex:none;width:28px;height:28px;display:grid;place-items:center}
+.ck svg{width:28px;height:28px;display:block}
+.dot .r{fill:#fff;stroke:#A2AF95;stroke-width:1.6}
+.dot .k{fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;display:none}
+.ck .sp{display:none}
+.sp .m{fill:var(--soil)}
+.sp .s{fill:none;stroke:var(--leaf);stroke-width:2;stroke-linecap:round}
+.sp .l{fill:var(--sprout);stroke:var(--leaf);stroke-width:1}
+.sp .pl{transform-origin:14px 19px;animation:sway 2.6s ease-in-out infinite}
+.row[aria-pressed="true"] .dot .r{fill:var(--leaf);stroke:var(--leaf)}
+.row[aria-pressed="true"] .dot .k{display:block}
+.row.enr .dot{display:none}
+.row.enr .ck .sp{display:block}
+.row .tx{min-width:0;flex:1}
+.row .nm{font-weight:600;font-size:15px;line-height:1.3}
+/* Tachado de agro: al aprobarla, una ramita con hojas crece sobre el nombre, de izquierda a derecha, y remata en un brote */
+.row{position:relative}
+.row[aria-pressed="true"] .nm{color:#66735F}
+.vine{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
+.vine .st{fill:none;stroke:var(--leaf);stroke-width:1.8;stroke-linecap:round}
+.vine .lf{fill:#6DAA45;stroke:var(--leaf-deep);stroke-width:.6;stroke-linejoin:round}
+.vine .bd{fill:var(--wheat);stroke:#B78612;stroke-width:.6}
+.vine.anim .st{stroke-dasharray:1;animation:vineGrow linear both}
+.vine.anim .lf,.vine.anim .bd{animation:leafPop .32s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes vineGrow{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes leafPop{from{transform:scale(0)}to{transform:scale(1)}}
+.row .sub{font-size:12.5px;color:var(--muted);margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.code{font-size:11.5px;font-weight:600;color:var(--soil);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.uc{flex:none;font-family:var(--f-display);font-weight:600;font-size:15px;color:var(--leaf-deep);font-variant-numeric:tabular-nums;white-space:nowrap}
+.st{font-size:11px;font-weight:700;border-radius:99px;padding:2px 9px}
+.st.ok{background:var(--leaf-soft);color:var(--leaf-deep)}
+.st.av{background:var(--sky-soft);color:var(--sky)}
+.st.lk{background:var(--stone);color:var(--stone-ink);font-weight:600}
+.why .st.lk{border-radius:10px}
+.st.wn{background:var(--soil-soft);color:var(--soil)}
+.st.en{background:var(--wheat-soft);color:var(--wheat-ink)}
+.note{font-size:12.5px;color:var(--muted);margin:8px 2px}
+.note b{color:var(--ink)}
+.elsearch{margin:0 0 8px}
+.elsearch input{width:100%;font:inherit;font-size:16px;padding:10px 14px;border-radius:14px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink)}
+.empty.pad{padding:12px 14px}
+.trow{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid var(--line);min-height:58px}
+.trow:first-child{border-top:0}
+.trow .nm{font-weight:600;font-size:15px}
+.trow .sub{font-size:12.5px;color:var(--muted);margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.trow .tx{flex:1;min-width:0}
+.opts div{margin-top:3px}
+.markbar{display:grid;gap:6px;margin:4px 2px}
+.markbar>span{font-size:12.5px;color:var(--muted)}
+.marks{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface);border:1px solid var(--line);padding:4px;border-radius:16px}
+.marks button{display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:12px;padding:9px 6px;font-weight:600;font-size:14px;background:transparent;color:var(--muted);cursor:pointer}
+.marks button[aria-pressed="true"]{background:var(--surface-2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line-strong),inset 0 -3px 0 var(--leaf)}
+#mkE[aria-pressed="true"]{box-shadow:inset 0 0 0 1px var(--line-strong),inset 0 -3px 0 var(--wheat)}
+.mk{flex:none;width:20px;height:20px}
+.mk.dot .r{fill:var(--leaf);stroke:var(--leaf)} .mk.dot .k{display:block}
+.mk.sp{display:block}
+.cursando{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--wheat-ink);font-weight:600}
+.cursando svg{width:22px;height:22px;display:block}
+.ps.cur{border-color:rgba(227,174,42,.55)}
+.ps.cur header{background:var(--wheat-soft)}
+.opener{border:0;cursor:pointer;font:inherit;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px}
+.opener .car{transition:transform .2s;display:inline-block}
+.opener[aria-expanded="true"] .car{transform:rotate(180deg)}
+.opener:hover{box-shadow:inset 0 0 0 1px currentColor}
+.opens{margin-top:10px;padding:10px 12px;border-radius:14px;background:rgba(47,111,149,.05);border:1px dashed rgba(47,111,149,.32);font-size:13px}
+.opens p{margin:0 0 6px;color:var(--muted);font-size:11.5px;font-weight:600}
+.opens p+div,.opens ul+p{margin-top:10px}
+.opens ul{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.opens li{display:flex;gap:8px;align-items:flex-start}
+.opens li b{font-weight:600}
+.opens li em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+.later{display:grid;gap:5px;color:var(--ink);font-size:12.5px;line-height:1.5}
+
+/* Recomendación */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:15px 16px;margin-block:12px}
+.card h3{font-family:var(--f-display);font-size:22px;font-weight:700;margin:0 0 10px}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--sunk);border:1px solid var(--line);padding:4px;border-radius:16px}
+.modes button{border:0;border-radius:12px;padding:9px;font-weight:600;font-size:14.5px;background:transparent;color:var(--muted);cursor:pointer}
+.modes button[aria-pressed="true"]{background:var(--leaf);color:#fff}
+.limits{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.lim{background:var(--sunk);border-radius:14px;padding:9px 11px}
+.lim label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;font-weight:500}
+.step{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.step button{width:36px;height:36px;border-radius:50%;border:1px solid var(--line-strong);background:var(--surface);color:var(--leaf-deep);font-size:20px;font-weight:600;cursor:pointer;line-height:1}
+.step output{font-family:var(--f-display);font-size:28px;font-weight:700;color:var(--leaf-deep);font-variant-numeric:tabular-nums}
+.rec{display:grid;gap:8px;margin-top:4px}
+.ri{display:flex;gap:12px;align-items:flex-start;padding:11px 12px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
+.ri .chip{height:26px;min-width:38px;font-size:14px}
+.ri .tx{flex:1;min-width:0}
+.why{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.opts{font-size:12.5px;color:var(--muted);margin-top:5px}
+.tot{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line-strong);font-weight:600}
+.tot b{font-family:var(--f-display);font-size:28px;font-weight:700;color:var(--leaf-deep)}
+.mini{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.mini:first-of-type{border-top:0}
+.mini .tx{flex:1;min-width:0;font-size:14px}
+.empty{color:var(--muted);font-size:14px;padding:6px 0}
+
+/* Plan */
+.plan{display:grid;gap:10px}
+.ps{border:1px solid var(--line);border-radius:18px;background:var(--surface);overflow:hidden}
+.ps header{display:flex;justify-content:space-between;align-items:baseline;padding:10px 14px;background:var(--leaf-soft);border-bottom:1px solid var(--line)}
+.ps header b{font-family:var(--f-display);font-size:19px;font-weight:700}
+.ps header span{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;margin-left:10px}
+.ps ul{list-style:none;margin:0;padding:6px 14px 10px}
+.ps li{display:flex;gap:8px;align-items:center;padding:4px 0;font-size:14px}
+.ps li i{flex:none;width:10px;height:10px;border-radius:50%}
+.ps li span{flex:1;min-width:0}
+.ps li em{font-style:normal;font-family:var(--f-display);font-weight:600;color:var(--leaf-deep);font-size:13px}
+.ps.fin{border-color:rgba(63,125,36,.45)}
+.ps.fin header{background:rgba(63,125,36,.18)}
+
+/* Herramientas */
+.tools{display:grid;gap:12px}
+.tools > h2{font-family:var(--f-display);font-size:22px;font-weight:700;margin:24px 2px 0}
+.tools .card{margin:0}
+.tools .card h3{font-size:18px}
+.tools p{margin:0 0 8px;font-size:13.5px;color:var(--muted)}
+.inrow{display:flex;gap:8px;flex-wrap:wrap}
+.inrow select,.inrow input{flex:1;min-width:0;font:inherit;font-size:15px;padding:10px 12px;border-radius:14px;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink)}
+.inrow input.mono{font-size:14px;letter-spacing:.03em}
+.btn{border:0;background:var(--leaf);color:#fff;border-radius:99px;padding:10px 16px;font-weight:700;font-size:14.5px;cursor:pointer;white-space:nowrap}
+.btn.sec{background:var(--surface-2);color:var(--leaf-deep);box-shadow:inset 0 0 0 1px var(--line-strong)}
+.btn.danger{background:var(--rose-soft);color:var(--rose);box-shadow:inset 0 0 0 1px rgba(168,58,69,.3)}
+.codebox{font-size:14px;font-weight:600;letter-spacing:.04em;background:var(--leaf-soft);border:1px dashed rgba(63,125,36,.45);color:var(--leaf-deep);border-radius:14px;padding:10px 12px;word-break:break-all;user-select:all}
+.msg{font-size:13px;margin-top:6px;min-height:1em}
+.msg.ok{color:var(--leaf-deep)} .msg.bad{color:var(--rose)}
+.foot{display:flex;align-items:center;justify-content:center;gap:12px;padding-block:26px 30px;color:var(--muted);font-size:12.5px;text-align:center;flex-wrap:wrap}
+.foot img{height:42px;width:auto}
+.foot .fga{height:58px}
+.foot .credit{flex-basis:100%;margin:6px 0 0;padding-top:12px;border-top:1px dashed var(--line-strong);font-size:12px}
+.foot .credit b{color:var(--ink);font-weight:600}
+.acrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.acrow .sync{flex:1;min-width:160px}
+.acrow .btn{padding:8px 14px;font-size:13.5px}
+.sheet{position:fixed;inset:0;z-index:20;background:rgba(29,48,28,.45);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet-in{position:relative;width:100%;max-width:440px;max-height:100%;overflow:auto;background:#FBFCF6;border:1px solid var(--line-strong);border-radius:24px;padding:22px 18px 20px;box-shadow:0 24px 60px -20px rgba(29,48,28,.5)}
+.sheet-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sheet-h h3{font-family:var(--f-display);font-size:25px;font-weight:700;margin:0}
+.gbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:#fff;color:#1f1f1f;box-shadow:inset 0 0 0 1px var(--line-strong);font-weight:600;font-size:15px;padding:12px}
+.or{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--muted);font-size:12px}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line-strong)}
+.fields{display:grid;gap:8px}
+.fields input{width:100%;font:inherit;font-size:16px;padding:11px 14px;border-radius:14px;border:1px solid var(--line-strong);background:#fff;color:var(--ink)}
+.pw{position:relative}
+.pw input{padding-right:84px}
+.eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:5px;border:0;background:transparent;color:var(--leaf-deep);font-size:13px;font-weight:600;padding:8px;cursor:pointer}
+.eye[aria-pressed="false"] .slash{display:none}
+.link{border:0;background:none;color:var(--sky);font-size:13px;padding:10px 0 0;cursor:pointer;text-decoration:underline}
+
+/* Notas: calculadora de cuánto me falta (escala UNET 1–100 a 1–9) */
+.grows{display:grid;gap:8px;margin-top:12px}
+.gcount{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:13.5px;color:var(--muted)}
+.gcn{display:flex;gap:6px}
+.gcn button{width:40px;height:38px;border-radius:12px;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink);font-family:var(--f-display);font-size:18px;font-weight:700;cursor:pointer}
+.gcn button[aria-pressed="true"]{background:var(--leaf);border-color:var(--leaf);color:#fff}
+.grow{display:grid;grid-template-columns:minmax(0,1fr) 74px 70px 38px 30px;gap:6px;align-items:center}
+.grow input{width:100%;min-width:0;font:inherit;font-size:16px;padding:9px 8px;border-radius:12px;border:1px solid var(--line-strong);background:#fff;color:var(--ink)}
+.grow .gl{font-size:14px}
+.gp{position:relative;display:block}
+.gp input{padding-right:20px}
+.gp span{position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none}
+.gn{text-align:center}
+.gc{font-family:var(--f-display);font-weight:600;font-size:15px;color:var(--leaf-deep);text-align:center}
+.gx{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:18px;line-height:1;cursor:pointer}
+.gsum{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.goals{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.goals button{display:grid;place-items:center;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink);border-radius:14px;padding:8px 0;font-family:var(--f-display);font-size:24px;font-weight:700;cursor:pointer;line-height:1.1}
+.goals button small{font-family:var(--f-body);font-size:10.5px;font-weight:600;color:var(--muted)}
+.goals button[aria-pressed="true"]{background:var(--leaf);border-color:var(--leaf);color:#fff}
+.goals button[aria-pressed="true"] small{color:#fff}
+.gacc{display:flex;align-items:baseline;gap:8px;color:var(--muted);font-size:13px}
+.gacc strong{font-family:var(--f-display);font-size:36px;font-weight:700;color:var(--ink)}
+.gbar{position:relative;height:12px;border-radius:99px;background:var(--sunk);margin:10px 0 14px}
+.gbar i{position:absolute;inset:0 auto 0 0;background:var(--leaf);border-radius:99px}
+.gbar b{position:absolute;top:-5px;bottom:-5px;width:3px;border-radius:2px;background:var(--soil);transform:translateX(-1.5px)}
+.gbar b.mx{background:var(--sky);width:2px}
+.gbig{border-radius:16px;padding:16px 14px 14px;background:var(--sky-soft);border:1px solid rgba(47,111,149,.25);display:grid;gap:2px;text-align:center}
+.gbig span{font-size:12.5px;color:var(--muted);font-weight:600}
+.gbig strong{font-family:var(--f-display);font-size:50px;font-weight:700;line-height:1.05;color:var(--sky)}
+.gbig strong small{font-size:18px;color:var(--muted)}
+.gbig em{font-style:normal;font-size:13px;color:var(--ink)}
+.gbig.ok{background:var(--leaf-soft);border-color:rgba(63,125,36,.3)} .gbig.ok strong{color:var(--leaf-deep)}
+.gbig.bad{background:var(--rose-soft);border-color:rgba(168,58,69,.28)} .gbig.bad strong{color:var(--rose)}
+.gtable{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:12px}
+.gtable div{display:grid;place-items:center;border:1px solid var(--line);border-radius:12px;padding:6px 0;background:var(--surface-2)}
+.gtable div.on{border-color:var(--leaf);background:var(--leaf-soft)}
+.gtable span{font-size:11px;color:var(--muted)}
+.gtable b{font-family:var(--f-display);font-size:21px;font-weight:700}
+.gmsg.wn{color:var(--soil);font-size:14px;margin:4px 0 0}
+.conv{align-items:center}
+.conv input{max-width:150px;font-size:16px}
+.cvarrow{color:var(--muted);font-size:18px}
+.conv output{font-family:var(--f-display);font-size:32px;font-weight:700;color:var(--leaf-deep);min-width:44px;text-align:center}
+@media (max-width:380px){.grow{grid-template-columns:minmax(0,1fr) 64px 60px 34px 28px}.seg button{font-size:13px}.stats{grid-template-columns:1fr 1fr}.stats .stat:last-child{grid-column:1/-1}.brand h1{font-size:24px}.ga{height:60px}.top .la{height:38px}}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+<div class="land" aria-hidden="true"><canvas id="field"></canvas></div>
+<div class="wrap">
+  <header class="top">
+    <img class="ga" src="icons/logo-agro.png" alt="Gente del Agro">
+    <div class="brand"><h1>Pensum de Agronomía</h1><p>Centro de Estudiantes de Ingeniería Agronómica UNET</p></div>
+    <img class="la" src="icons/logo-alpha.png" alt="Movimiento Estudiantil Alpha">
+  </header>
+
+  <section class="sum" aria-label="Resumen">
+    <div class="big"><b id="sUC">0</b><span>de 162 U.C. aprobadas</span></div>
+    <div class="bar" id="sBar" aria-hidden="true"></div>
+    <div class="cursando" id="sCur" hidden></div>
+    <div class="stats">
+      <div class="stat"><b id="sMat">0/63</b><span>materias</span></div>
+      <div class="stat"><b id="sEl">0/3</b><span>electivas</span></div>
+      <div class="stat"><b id="sSem">–</b><span>semestres para terminar</span></div>
+    </div>
+    <div class="acrow"><div class="sync" id="sync">Tu progreso se guarda en este dispositivo.</div>
+      <span id="acct" hidden><button class="btn sec" id="acBtn">Guardar en la nube</button></span></div>
+  </section>
+
+  <div id="tabsMark" aria-hidden="true"></div>
+  <nav class="tabs" aria-label="Secciones">
+    <div class="seg" role="tablist">
+      <button role="tab" id="t-materias" aria-selected="true">Materias</button>
+      <button role="tab" id="t-inscribir" aria-selected="false">Inscribir</button>
+      <button role="tab" id="t-plan" aria-selected="false">Mi plan</button>
+      <button role="tab" id="t-notas" aria-selected="false">Notas</button>
+    </div>
+  </nav>
+
+  <main>
+    <section id="v-materias">
+      <div class="markbar">
+        <span>Al tocar una materia, marcarla como:</span>
+        <div class="marks" role="group" aria-label="Tipo de marca">
+          <button id="mkA" aria-pressed="true"><svg class="mk dot" viewBox="0 0 28 28" aria-hidden="true"><circle class="r" cx="14" cy="14" r="11.5"/><path class="k" d="M8.8 14.4l3.5 3.5 7-7.6"/></svg>Aprobada</button>
+          <button id="mkE" aria-pressed="false"><span id="mkEIcon"></span>Inscrita este semestre</button>
+        </div>
+      </div>
+      <div id="semList"></div>
+    </section>
+    <section id="v-inscribir" hidden>
+      <div class="card">
+        <h3>¿Qué vas a inscribir?</h3>
+        <div class="modes">
+          <button id="mSem" aria-pressed="true">Semestre regular</button>
+          <button id="mInt" aria-pressed="false">Intensivo</button>
+        </div>
+        <div class="limits">
+          <div class="lim"><label for="oUC">Máximo de U.C.</label>
+            <div class="step"><button id="ucMinus" aria-label="Menos U.C.">−</button><output id="oUC">20</output><button id="ucPlus" aria-label="Más U.C.">+</button></div></div>
+          <div class="lim"><label for="oN">Máximo de materias</label>
+            <div class="step"><button id="nMinus" aria-label="Menos materias">−</button><output id="oN">10</output><button id="nPlus" aria-label="Más materias">+</button></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Te recomendamos</h3>
+        <p class="note" id="recNote" style="margin-top:-4px" hidden></p>
+        <div class="rec" id="recList"></div>
+        <div class="tot" id="recTot"></div>
+      </div>
+      <div class="card">
+        <h3>Otras materias disponibles</h3>
+        <p class="note" style="margin-top:0"><b>Ruta crítica</b> son las materias que, si las dejas, retrasan tu grado. Las de semestres muy adelantados no entran en la recomendación, aunque puedes inscribirlas. Si alguna no salió en la oferta, márcala y la recomendación se ajusta.</p>
+        <div id="otherList"></div>
+      </div>
+      <p class="note">Las prelaciones salen del pensum oficial (CU 010/2020). La oferta, los cupos, el máximo de U.C. y los permisos especiales los confirmas en Control de Estudios.</p>
+    </section>
+    <section id="v-notas" hidden>
+      <div class="card">
+        <h3>¿Cuánto me falta?</h3>
+        <p class="note" style="margin-top:-4px">Pon el porcentaje y la nota (1 a 100) de cada parcial. Deja en blanco la nota de los parciales que todavía no presentas.</p>
+        <div class="gcount"><span>¿Cuántos parciales tiene?</span><div class="gcn" id="gCount" role="group" aria-label="Cantidad de evaluaciones"></div></div>
+        <div id="gRows" class="grows"></div>
+        <div class="inrow" style="margin-top:10px"><button class="btn sec" id="gAdd">+ Agregar parcial</button><button class="ghost" id="gReset" style="margin-left:auto">Reiniciar</button></div>
+        <div class="gsum" id="gSum"></div>
+      </div>
+      <div class="card">
+        <h3 style="font-size:18px">Meta de nota definitiva</h3>
+        <div class="goals" id="gGoals" role="group" aria-label="Meta"></div>
+      </div>
+      <div class="card gres" id="gRes"></div>
+      <div class="card">
+        <h3 style="font-size:18px">Convertir una nota</h3>
+        <div class="inrow conv"><input id="cvIn" type="number" inputmode="numeric" min="1" max="100" placeholder="Nota de 1 a 100" aria-label="Nota de 1 a 100"><span class="cvarrow">→</span><output id="cvOut">–</output><span class="note" style="margin:0">de 9</span></div>
+      </div>
+    </section>
+    <section id="v-plan" hidden>
+      <div class="card"><h3 id="planTitle">Tu ruta hasta el grado</h3>
+        <p class="note" style="margin:0">Calculado con los límites de semestre regular de “Inscribir”, suponiendo que apruebas todo y que te ofertan todas las materias.</p></div>
+      <div class="plan" id="planList"></div>
+    </section>
+
+    <section class="tools" id="tools" aria-label="Herramientas">
+      <h2>Herramientas</h2>
+      <div class="card">
+        <h3>Marcar rápido</h3>
+        <p>Marca como aprobadas todas las materias hasta un semestre y luego desmarca las que te falten.</p>
+        <div class="inrow">
+          <select id="qSem" aria-label="Semestre"></select>
+          <button class="btn sec" id="qGo">Marcar</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Terminé el semestre</h3>
+        <p>Pasa todas las materias inscritas (las del brote) a aprobadas de una vez. Si reprobaste alguna, la desmarcas después.</p>
+        <div class="inrow"><button class="btn sec" id="finSem">Marcar inscritas como aprobadas</button></div>
+        <div class="msg" id="finMsg" role="status"></div>
+      </div>
+      <div class="card">
+        <h3>Código de respaldo</h3>
+        <p>Guarda este código para pasar tu progreso a otro teléfono o recuperarlo si se borra.</p>
+        <div class="codebox" id="bkCode"></div>
+        <div class="inrow" style="margin-top:8px"><button class="btn sec" id="bkCopy">Copiar código</button></div>
+        <div class="inrow" style="margin-top:12px">
+          <input class="mono" id="bkIn" placeholder="Pega aquí un código AG1-…" autocomplete="off" spellcheck="false">
+          <button class="btn" id="bkLoad">Cargar</button>
+        </div>
+        <div class="msg" id="bkMsg" role="status"></div>
+      </div>
+      <div class="card">
+        <h3>Empezar de cero</h3>
+        <p>Desmarca todas las materias de este dispositivo.</p>
+        <div class="inrow"><button class="btn danger" id="rst">Borrar mi progreso</button>
+          <button class="btn danger" id="rstYes" hidden>Sí, borrar todo</button><button class="btn sec" id="rstNo" hidden>Cancelar</button></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="sheet" id="acSheet" hidden>
+    <div class="sheet-in" role="dialog" aria-modal="true" aria-labelledby="acTitle">
+      <div class="sheet-h"><h3 id="acTitle">Tu cuenta</h3><button class="ghost" id="acClose">Cerrar</button></div>
+      <div id="acOut">
+        <p class="note" style="margin:0 0 12px">Inicia sesión y tus materias se guardan en la nube. Aparecen en cualquier teléfono donde entres con la misma cuenta.</p>
+        <button class="btn gbtn" id="acGoogle"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#EA4335" d="M12 10.2v3.9h5.4c-.2 1.3-1.6 3.8-5.4 3.8-3.2 0-5.9-2.7-5.9-6s2.7-6 5.9-6c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.3 14.6 2.3 12 2.3 6.7 2.3 2.4 6.6 2.4 12s4.3 9.7 9.6 9.7c5.5 0 9.2-3.9 9.2-9.4 0-.6-.1-1.1-.2-1.6H12z"/></svg>Continuar con Google</button>
+        <div class="or"><span>o con tu correo</span></div>
+        <div class="fields">
+          <input id="acEmail" type="email" inputmode="email" autocomplete="email" placeholder="correo@ejemplo.com" aria-label="Correo">
+          <div class="pw"><input id="acPass" type="password" autocomplete="current-password" placeholder="Contraseña (mínimo 6 caracteres)" aria-label="Contraseña">
+            <button type="button" class="eye" id="acEye" aria-label="Mostrar contraseña" aria-pressed="false"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path class="slash" d="M4 4l16 16"/></svg><span id="acEyeT">Ver</span></button></div>
+        </div>
+        <div class="inrow" style="margin-top:10px"><button class="btn" id="acLogin">Entrar</button><button class="btn sec" id="acSignup">Crear cuenta</button></div>
+        <button class="link" id="acReset">¿Olvidaste tu contraseña?</button>
+        <p class="note" style="margin-top:12px">En iPhone, si el botón de Google no funciona dentro de la app instalada, usa correo y contraseña.</p>
+      </div>
+      <div id="acIn" hidden>
+        <p style="margin:0 0 4px">Sesión iniciada como</p>
+        <p class="code" id="acWho" style="font-size:14px;margin:0 0 12px"></p>
+        <p class="note" style="margin:0 0 12px">Tus materias se guardan solas en la nube cada vez que marcas una.</p>
+        <button class="btn danger" id="acLogout">Cerrar sesión</button>
+      </div>
+      <div class="msg" id="acMsg" role="status"></div>
+      <p class="note" style="margin-top:14px;font-size:11.5px">Solo guardamos tu correo y las materias que marcas. Nadie más puede verlas. La app la administra el Centro de Estudiantes de Ingeniería Agronómica de la UNET.</p>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <img class="fga" src="icons/logo-agro.png" alt=""><img src="icons/logo-alpha.png" alt="">
+    <span>Gente del Agro, Centro de Estudiantes<br>de Ingeniería Agronómica UNET<br>Movimiento Estudiantil Alpha</span>
+    <p class="credit">Agradecimiento especial al <b>Centro de Estudiantes de Ingeniería Electrónica</b>, creadores de esta app web.</p>
+  </footer>
+</div>
+<div class="under" aria-hidden="true"><canvas id="soil"></canvas></div>
+
+<script>
+// Pensum de Ingeniería Agronómica UNET (CA 03/2020 y CU 010/2020). "id" es el código oficial; "pre" prerrequisitos,
+// "co" correquisitos (se inscriben juntas o ya aprobadas), "minUC" U.C. aprobadas que pide, "blk" materia del semestre integrado.
+const DATA = {"total_uc":162,"semesters":[
+{"n":1,"courses":[
+ {"id":"0533105T","name":"Introducción a la Ingeniería Agronómica","uc":2},
+ {"id":"1023111T","name":"Lenguaje y Comunicación","uc":2},
+ {"id":"1032109T","name":"Efectividad Personal","uc":1},
+ {"id":"0413104T","name":"Computación Aplicada","uc":2},
+ {"id":"0826101T","name":"Matemática I","uc":4},
+ {"id":"0914201T","name":"Química General I","uc":3},
+ {"id":"0912202L","name":"Laboratorio de Química General I","co":["0914201T"],"uc":1}]},
+{"n":2,"courses":[
+ {"id":"0924301T","name":"Química General II","pre":["0914201T","0912202L"],"uc":3},
+ {"id":"0922302L","name":"Laboratorio de Química General II","co":["0924301T"],"uc":1},
+ {"id":"1023202T","name":"Inglés I","minUC":12,"uc":2},
+ {"id":"0826201T","name":"Matemática II","pre":["0826101T"],"uc":4},
+ {"id":"0516102T","name":"Botánica Agrícola","uc":4},
+ {"id":"1012207T","name":"Ciencia y Sociedad I","uc":1}]},
+{"n":3,"courses":[
+ {"id":"0923401T","name":"Química Orgánica","pre":["0924301T","0922302L"],"uc":2},
+ {"id":"0923402L","name":"Laboratorio de Química Orgánica","co":["0923401T"],"uc":1},
+ {"id":"1032301T","name":"Necesidad, Valores y Proyecto de Vida","pre":["1012207T"],"uc":1},
+ {"id":"0846203T","name":"Física I","pre":["0826101T"],"uc":4},
+ {"id":"0842204L","name":"Laboratorio de Física I","co":["0846203T"],"uc":1},
+ {"id":"0516202T","name":"Agroecología","pre":["0516102T"],"uc":4},
+ {"id":"1023302T","name":"Inglés II","pre":["1023202T"],"uc":2}]},
+{"n":4,"courses":[
+ {"id":"0924501T","name":"Bioquímica","pre":["0923401T","0923402L"],"uc":3},
+ {"id":"0923502L","name":"Laboratorio de Bioquímica","co":["0924501T"],"uc":1},
+ {"id":"0834402T","name":"Estadística","pre":["0826201T"],"uc":3},
+ {"id":"1013401T","name":"Economía","pre":["0826201T"],"uc":2},
+ {"id":"0543401T","name":"Enfoque Sistémico","pre":["0516202T"],"uc":2},
+ {"id":"1032402T","name":"Gerencia Personal, Contexto y Proyecto Organizacional","pre":["1032301T"],"uc":1},
+ {"id":"0524402T","name":"Suelos","pre":["0924301T"],"uc":3}]},
+{"n":5,"courses":[
+ {"id":"0515305T","name":"Entomología General","pre":["0516202T"],"uc":3},
+ {"id":"0523705T","name":"Manejo de Suelos y Fertilidad","pre":["0524402T"],"uc":2},
+ {"id":"ELV","name":"Electiva","elective":true,"uc":2},
+ {"id":"0516501T","name":"Fisiología Vegetal","pre":["0924501T"],"uc":4},
+ {"id":"0313504T","name":"Genética","pre":["0924501T"],"uc":2},
+ {"id":"0312506L","name":"Laboratorio de Genética","co":["0313504T"],"uc":1},
+ {"id":"0516502T","name":"Fundamentos de Fitopatología","pre":["0924501T"],"uc":4},
+ {"id":"1000003","name":"Servicio Comunitario","minUC":60,"extra":true,"uc":0}]},
+{"n":6,"courses":[
+ {"id":"0525601T","name":"Fundamentos de Hidráulica","pre":["0846203T","0842204L"],"co":["0525304T"],"blk":1,"uc":3},
+ {"id":"0525304T","name":"Topografía","pre":["0846203T"],"co":["0523606T"],"blk":1,"uc":3},
+ {"id":"0523606T","name":"Construcciones Rurales","pre":["0846203T"],"co":["0523604T"],"blk":1,"uc":2},
+ {"id":"0523604T","name":"Conservación de Suelos y Aguas","pre":["0524402T"],"minUC":70,"blk":1,"uc":2},
+ {"id":"0523605T","name":"Sistemas de Representación Gráfica","pre":["0413104T"],"co":["0525602T"],"blk":1,"uc":2},
+ {"id":"0525602T","name":"Proyecto Integrador de Ingeniería","pre":["0413104T"],"co":["0525601T"],"blk":1,"uc":3},
+ {"id":"0513603T","name":"Biotecnología Agrícola","pre":["0516501T"],"uc":2}]},
+{"n":7,"courses":[
+ {"id":"0525701T","name":"Riego y Drenaje","pre":["0525601T"],"co":["0525702T"],"blk":1,"uc":3},
+ {"id":"0525702T","name":"Mecanización Agrícola","pre":["0523604T"],"co":["0533707T"],"blk":1,"uc":3},
+ {"id":"0533707T","name":"Manejo de Arvenses I","pre":["0516501T"],"co":["0533709T"],"blk":1,"uc":1},
+ {"id":"0533709T","name":"Manejo de Enfermedades I","pre":["0516502T"],"co":["0533708T"],"blk":1,"uc":2},
+ {"id":"0533708T","name":"Manejo de Plagas I","pre":["0515305T"],"co":["0536711T"],"blk":1,"uc":2},
+ {"id":"0536711T","name":"Cultivos de Ciclo Corto","pre":["0516501T"],"co":["0535710T"],"blk":1,"uc":4},
+ {"id":"0535710T","name":"Proyecto Integrador de Producción de Anuales","pre":["0525602T"],"blk":1,"uc":2}]},
+{"n":8,"courses":[
+ {"id":"0532815T","name":"Manejo de Arvenses II","pre":["0533707T"],"co":["0532817T"],"blk":1,"uc":1},
+ {"id":"0532817T","name":"Manejo de Enfermedades II","pre":["0533709T"],"co":["0532816T"],"blk":1,"uc":1},
+ {"id":"0532816T","name":"Manejo de Plagas II","pre":["0533708T"],"co":["0535803T"],"blk":1,"uc":1},
+ {"id":"0535803T","name":"Café y Cacao","pre":["0523705T"],"co":["0534804T"],"blk":1,"uc":3},
+ {"id":"0534804T","name":"Fruticultura","pre":["0525702T"],"co":["0534805T"],"blk":1,"uc":3},
+ {"id":"0534805T","name":"Caña y Palma","pre":["0536711T"],"co":["0533806T"],"blk":1,"uc":3},
+ {"id":"0533806T","name":"Proyecto Integrador de Producción de Perennes","pre":["0535710T"],"blk":1,"uc":2},
+ {"id":"0533807T","name":"Forrajicultura","pre":["0525702T"],"uc":2},
+ {"id":"0532809L","name":"Laboratorio de Forrajicultura","co":["0533807T"],"uc":1},
+ {"id":"1013308T","name":"Metodología de la Investigación","minUC":100,"uc":2}]},
+{"n":9,"courses":[
+ {"id":"MPS","name":"Mejoramiento y Producción de Semillas","pre":["0313504T","0533806T"],"uc":3},
+ {"id":"0545902T","name":"Desarrollo Rural Sostenible","co":["1032601T"],"blk":1,"uc":3},
+ {"id":"1032601T","name":"Legislación, Valores Nacionales y Proyecto de País","pre":["1032402T"],"co":["0544903T"],"blk":1,"uc":1},
+ {"id":"0544903T","name":"Proyecto Integrador de Desarrollo Rural","pre":["0533806T"],"blk":1,"uc":3},
+ {"id":"0545905T","name":"Formación y Gerencia de Empresas","pre":["1013401T","0533806T"],"uc":3},
+ {"id":"0523508T","name":"Diseño de Experimentos","pre":["0834402T"],"uc":2},
+ {"id":"ELIX1","name":"Electiva","elective":true,"uc":2},
+ {"id":"ELIX2","name":"Electiva","elective":true,"uc":2}]}],
+"electives":[
+ {"id":"E01","name":"Agrónica"},
+ {"id":"E02","name":"Café II"},
+ {"id":"E03","name":"Comercio Internacional"},
+ {"id":"E04","name":"Computación II"},
+ {"id":"E05","name":"Conservación del Suelo II"},
+ {"id":"E06","name":"Cooperativismo"},
+ {"id":"E07","code":"0423812T","name":"Creación de Empresas"},
+ {"id":"E08","name":"Creatividad para Ingenieros"},
+ {"id":"E09","code":"0533906T","name":"Cultivos Protegidos"},
+ {"id":"E10","name":"Cultivos Especiales"},
+ {"id":"E11","name":"Diseños Experimentales Avanzados"},
+ {"id":"E12","name":"Ecuaciones Diferenciales"},
+ {"id":"E13","name":"Empaquetecnia"},
+ {"id":"E14","name":"Fisiología de Cultivos (Bioproductividad)"},
+ {"id":"E15","name":"Fitoquímica"},
+ {"id":"E16","code":"0423504T","name":"Formación de Emprendedores"},
+ {"id":"E17","name":"Formulación de Proyectos"},
+ {"id":"E18","name":"Forrajicultura II"},
+ {"id":"E19","code":"0543509T","name":"Fotografía Técnica"},
+ {"id":"E20","name":"Fruticultura II"},
+ {"id":"E21","code":"0543901T","name":"Gerencia Agrícola"},
+ {"id":"E22","name":"Gerencia de Exportaciones"},
+ {"id":"E23","code":"1023501T","name":"Inglés III"},
+ {"id":"E24","name":"Inglés IV"},
+ {"id":"E25","name":"Instalaciones Agrícolas"},
+ {"id":"E26","name":"Instalaciones Eléctricas para Unidades de Producción Agrícola"},
+ {"id":"E27","code":"0533811T","name":"Jardinería y Floricultura"},
+ {"id":"E28","name":"Mecanización II"},
+ {"id":"E29","code":"0343804T","name":"Mercadeo Agrícola"},
+ {"id":"E30","name":"Musáceas"},
+ {"id":"E31","code":"0123801T","name":"Organización"},
+ {"id":"E32","code":"0533812T","name":"Procesos Agroindustriales de Productos Vegetales"},
+ {"id":"E33","name":"Productividad"},
+ {"id":"E34","name":"Propagación de Plantas"},
+ {"id":"E35","code":"0513506T","name":"Química Agrícola"},
+ {"id":"E36","code":"0533810T","name":"Raíces y Tubérculos"},
+ {"id":"E37","code":"0523813T","name":"Sistemas de Abastecimiento de Agua"},
+ {"id":"E38","name":"Sistemas de Producción Pecuarios"},
+ {"id":"E39","name":"Sistemas Integrados de Producción Agropecuaria"},
+ {"id":"E40","name":"Software Aplicado al Agro"},
+ {"id":"E41","code":"0533814T","name":"Técnicas para una Agricultura Sostenible"},
+ {"id":"E42","code":"0323204T","name":"Zootecnia General"}]};
+const TOTAL_UC = 162, COURSE_UC = 150, ELECT_NEEDED = 3, ELECT_UC = 2;
+// 3 electivas: una en el V (pide Enfoque Sistémico) y dos en el IX (piden Proyecto Integrador de Producción de Perennes)
+const EL_SLOTS = [{sem:5, pre:"0543401T", name:"Electiva del semestre V"}, {sem:9, pre:"0533806T", name:"Electiva del semestre IX"}, {sem:9, pre:"0533806T", name:"Electiva del semestre IX"}];
+// Trabajo de Aplicación Profesional: se elige una modalidad. El esquema de prelaciones une el Proyecto Especial de Grado con Metodología y Diseño de Experimentos.
+const TAPS = [{code:"0500001T", name:"Proyecto Especial de Grado", minUC:120, pre:["1013308T","0523508T"]}, {code:"0500002T", name:"Pasantías", minUC:148, pre:[]}];
+const AHEAD = 2;   // la recomendación no sugiere materias más de 2 semestres por encima de tu nivel
+const ROMAN = ["","I","II","III","IV","V","VI","VII","VIII","IX","X"];
+// Colores por semestre: de la tierra al cultivo; del VI al IX, los colores de los semestres integrados del esquema oficial
+const SEMC = {1:"#EAD5B3",2:"#DFC495",3:"#D3D69B",4:"#BFD898",5:"#A7CF88",6:"#A3DA6A",7:"#F2D650",8:"#7DD3CC",9:"#F3A3C1",10:"#D2C1A3",0:"#B5D6EA"};
+const INTEG = {6:["Semestre integrado de Ingeniería","#7CC23E"],7:["Semestre integrado en Producción de Anuales","#E2BC12"],8:["Semestre integrado en Producción de Perennes","#2FB3AC"],9:["Semestre integrado de Desarrollo Rural","#E2669A"]};
+const chipStyle = s => `background:${SEMC[s]}`;
+const isCode = s => /^\d{7}[A-Z]?$/.test(s);
+
+// ---------- datos ----------
+const CORE = [], BY = {};
+DATA.semesters.forEach(s => s.courses.forEach(c => {
+  if (c.elective) return;
+  const o = {...c, sem:s.n, key:c.id, code:c.code || (isCode(c.id) ? c.id : ""), pre:c.pre||[], co:c.co||[]};
+  CORE.push(o); BY[o.key] = o;
+}));
+const ELECT = DATA.electives.map(e => ({...e, key:e.id, code:e.code||"", pre:[], co:[], uc:ELECT_UC, elective:true}));
+ELECT.forEach(e => BY[e.key] = e);
+const ORDER = [...CORE.filter(c=>!c.extra).map(c=>c.key), ...ELECT.map(e=>e.key), ...CORE.filter(c=>c.extra).map(c=>c.key)];   // orden fijo para el código de respaldo
+const nm = k => BY[k] ? BY[k].name : k;
+// U.C. acumuladas al terminar cada semestre (para saber en qué nivel va el estudiante)
+const CUM = []; { let t = 0; DATA.semesters.forEach(s => { s.courses.forEach(c => t += c.uc); CUM[s.n] = t; }); }
+const levelOf = uc => { let l = 1; for (let s=1;s<=9;s++) if (CUM[s] <= uc) l = s+1; return Math.min(9, l); };
+
+// dependientes y ruta crítica (solo materias del pensum)
+const DEPS = {}; CORE.forEach(c => DEPS[c.key] = []);
+CORE.forEach(c => [...c.pre, ...c.co].forEach(p => DEPS[p] && DEPS[p].push(c.key)));
+const CHAIN = {};
+function chain(k){ if (CHAIN[k]) return CHAIN[k];
+  const d = CORE.filter(c => c.pre.includes(k)).map(c => chain(c.key));
+  return CHAIN[k] = 1 + (d.length ? Math.max(...d) : 0); }
+CORE.forEach(c => chain(c.key));
+function unlockSet(k){ const seen = new Set(), st=[k];
+  while(st.length){ const x=st.pop(); (DEPS[x]||[]).forEach(d=>{ if(!seen.has(d)){seen.add(d); st.push(d);} }); }
+  return seen; }
+const UNLOCK = {}; CORE.forEach(c => UNLOCK[c.key] = unlockSet(c.key).size);
+const OPEN = new Set();
+let EL_OPEN = false, EL_Q = "";   // lista de electivas abierta y texto de búsqueda (no se guardan)
+
+// ---------- estado ----------
+const LS = "pensumAgronomiaUNET.v1";
+let MARK = "a";   // qué marca un toque: "a" aprobada, "e" inscrita
+const plusE = () => new Set([...S.a, ...S.e]);
+const DEF_LIM = {sem:{uc:20,n:10}, int:{uc:8,n:2}};
+let S = {a:new Set(), e:new Set(), x:new Set(), g:{}, gk:"libre", mode:"sem", lim:JSON.parse(JSON.stringify(DEF_LIM)), t:0};
+function loadLocal(){ try{ const r = JSON.parse(localStorage.getItem(LS)||"null"); if(r) applyRaw(r); }catch(e){} }
+function applyRaw(r){
+  S.a = new Set((r.a||[]).filter(k=>BY[k])); S.x = new Set((r.x||[]).filter(k=>BY[k]));
+  S.e = new Set((r.e||[]).filter(k=>BY[k] && !S.a.has(k)));
+  S.g = (r.g && typeof r.g === "object") ? r.g : {}; S.gk = typeof r.gk === "string" ? r.gk : "libre";
+  S.mode = r.mode==="int"?"int":"sem";
+  if (r.lim && r.lim.sem && r.lim.int) S.lim = {sem:{uc:+r.lim.sem.uc||20,n:+r.lim.sem.n||10}, int:{uc:+r.lim.int.uc||8,n:+r.lim.int.n||2}};
+  S.t = r.t||0;
+}
+const raw = () => ({a:[...S.a], e:[...S.e], x:[...S.x], g:S.g, gk:S.gk, mode:S.mode, lim:S.lim, t:S.t});
+let dbRef = null, dbBusy = Promise.resolve(), dbTimer = null;
+function save(){
+  S.t = Date.now();
+  try{ localStorage.setItem(LS, JSON.stringify(raw())); }catch(e){}
+  if (dbRef){ clearTimeout(dbTimer); dbTimer = setTimeout(()=>{ const body = raw();
+    dbBusy = dbBusy.then(()=>dbRef.set(body)).then(()=>setSync(true)).catch(()=>{}); }, 900); }
+}
+function setSync(t){ document.getElementById("sync").textContent = t === true ? "Tu progreso se sincroniza con tu cuenta y se guarda en este dispositivo." : (t || "Tu progreso se guarda en este dispositivo."); }
+
+// ---------- lógica ----------
+const electCount = (A, extra=0) => Math.min(ELECT_NEEDED, ELECT.filter(e=>A.has(e.key)).length + extra);
+const elAllowed = A => Math.min(ELECT_NEEDED, EL_SLOTS.filter(s => A.has(s.pre)).length);   // cuántas electivas se pueden tener según lo aprobado
+const ucOf = (A, extra=0) => CORE.reduce((s,c)=>s+(A.has(c.key)?c.uc:0),0) + ELECT_UC*electCount(A,extra);
+function missing(c, A, uc){
+  const m = [];
+  c.pre.forEach(p => { if(!A.has(p)) m.push(nm(p)); });
+  if (c.minUC && uc < c.minUC) m.push(`${c.minUC} U.C. aprobadas`);
+  return m;
+}
+function recommend(A, lim, excl, extraE=0, near=true){
+  const uc = ucOf(A, extraE), lvl = levelOf(uc), top = near ? lvl + AHEAD : 99;
+  const avail = CORE.filter(c => !A.has(c.key) && !excl.has(c.key) && missing(c,A,uc).length===0);
+  const cand = avail.filter(c => c.sem <= top); const candSet = new Set(cand.map(c=>c.key));
+  const eA = electCount(A, extraE);
+  const eligE = ELECT.filter(e => !A.has(e.key) && !excl.has(e.key));
+  const slots = [];
+  if (eligE.length) for (let i = eA; i < elAllowed(A); i++) if (EL_SLOTS[i].sem <= top)
+    slots.push({key:"SLOT"+i, name:EL_SLOTS[i].name, uc:ELECT_UC, sem:EL_SLOTS[i].sem, slot:true, prio:1, pre:[], co:[], options:eligE});
+  const pr = c => c.slot ? c.prio : CHAIN[c.key];
+  const pool = [...cand, ...slots].sort((p,q) => pr(q) - pr(p) || p.sem - q.sem || (q.slot?0:UNLOCK[q.key]) - (p.slot?0:UNLOCK[p.key]));
+  const picked = [], pk = new Set(); let pu = 0, pn = 0;
+  for (const c of pool){
+    if (pk.has(c.key)) continue;
+    const g = []; let bad = false; const st = [...c.co], seen = new Set([c.key]);
+    while (st.length){ const co = st.pop(); if (seen.has(co)) continue; seen.add(co);
+      if (A.has(co) || pk.has(co)) continue; if (candSet.has(co)){ g.push(BY[co]); st.push(...BY[co].co); } else bad = true; }
+    if (bad) continue; g.push(c);
+    const gk = new Set(g.map(x=>x.key));
+    const mates = cand.filter(x => !pk.has(x.key) && !gk.has(x.key) && x.co.some(k=>gk.has(k)) && x.co.every(k=>A.has(k)||pk.has(k)||gk.has(k)));
+    const fits = arr => { const u = arr.reduce((s,x)=>s+x.uc,0), n = arr.filter(x=>x.uc>0).length; return (pu+u <= lim.uc && pn+n <= lim.n) ? [u,n] : null; };
+    const use = fits([...g, ...mates]) ? [...g, ...mates] : g, un = fits(use);
+    if (!un) continue;
+    use.forEach(x=>{ picked.push(x); pk.add(x.key); }); pu += un[0]; pn += un[1];
+  }
+  if (!picked.length && near) { const r = recommend(A, lim, excl, extraE, false); r.cand = avail; return r; }
+  return {picked, uc:pu, n:pn, cand:avail, eligE, pk};
+}
+function projection(){
+  const A = new Set(S.a); let extra = 0; const out = [];
+  if (S.e.size){ const cur = [...S.e].map(k=>BY[k]);
+    out.push({current:true, picked:cur, uc:cur.reduce((t,c)=>t+c.uc,0), n:cur.filter(c=>c.uc>0).length});
+    S.e.forEach(k => A.add(k)); }
+  for (let i=0;i<16;i++){
+    const r = recommend(A, S.lim.sem, new Set(), extra);
+    if (!r.picked.length) break;
+    r.picked.forEach(x => { if (x.slot) extra++; else A.add(x.key); });
+    out.push(r);
+  }
+  const doneCore = CORE.every(c => A.has(c.key)), doneE = electCount(A,extra) >= ELECT_NEEDED;
+  return {sems:out, complete: doneCore && doneE, A, extra};
+}
+
+// ---------- Calculadora de notas ----------
+const CONV = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0, 3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4.0, 4.0, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.8, 4.9, 5.0, 5.1, 5.2, 5.3, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9, 6.0, 6.0, 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 7.0, 7.0, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 7.9, 8.0, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8, 8.9, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0];   // nota 1–100 → escala UNET 1–9
+const conv = n => { n = Math.round(+n); return n < 1 ? 1 : n > 100 ? 9 : CONV[n-1]; };
+const EPS = 1e-9;
+const num = v => v === "" || v === null || v === undefined || isNaN(+v) ? null : +v;
+const defEvals = () => [1,2,3,4].map(i => ({l:"Parcial " + i, p:25, n:""}));
+function evalsOf(k){ if (!S.g[k]) S.g[k] = {ev:defEvals(), goal:5}; return S.g[k]; }
+function gradeCalc(ev, goal){
+  const valid = ev.filter(e => num(e.p) > 0);
+  const sumP = valid.reduce((t,e) => t + num(e.p), 0);
+  const done = valid.filter(e => num(e.n) !== null), pend = valid.filter(e => num(e.n) === null);
+  const doneP = done.reduce((t,e) => t + num(e.p), 0), pendP = pend.reduce((t,e) => t + num(e.p), 0);
+  const acc = done.reduce((t,e) => t + num(e.p)/100 * conv(e.n), 0);
+  const need = g => { if (acc >= g - 0.5 - EPS) return 0;
+    if (pendP <= 0) return null;
+    for (let x = 1; x <= 100; x++) if (acc + conv(x) * pendP/100 >= g - 0.5 - EPS) return x;
+    return null; };
+  const maxFinal = Math.min(9, Math.max(1, Math.floor(acc + 9*pendP/100 + 0.5 + EPS)));
+  const finalNow = Math.min(9, Math.max(1, Math.floor(acc + 0.5 + EPS)));
+  return {sumP, doneP, pendP, acc, need, maxFinal, finalNow, nPend:pend.length, nDone:done.length};
+}
+function renderNotas(){
+  S.gk = "libre";
+  const G = evalsOf(S.gk);
+  $("gRows").innerHTML = G.ev.map((e,i) => `<div class="grow" data-i="${i}">
+      <input class="gl" data-f="l" value="${String(e.l).replace(/"/g,"&quot;")}" aria-label="Nombre de la evaluación" placeholder="Parcial ${i+1}">
+      <label class="gp"><input data-f="p" type="number" inputmode="decimal" min="0" max="100" value="${e.p}" aria-label="Porcentaje"><span>%</span></label>
+      <input class="gn" data-f="n" type="number" inputmode="numeric" min="1" max="100" value="${e.n}" placeholder="Nota" aria-label="Nota de 1 a 100">
+      <output class="gc">${num(e.n)!==null ? conv(e.n).toFixed(1) : "–"}</output>
+      <button class="gx" data-del="${i}" aria-label="Quitar evaluación">×</button></div>`).join("");
+  $("gCount").innerHTML = [2,3,4,5,6].map(n => `<button data-count="${n}" aria-pressed="${G.ev.length===n}">${n}</button>`).join("");
+  $("gGoals").innerHTML = [5,6,7,8,9].map(g => `<button data-goal="${g}" aria-pressed="${G.goal===g}">${g}${g===5?"<small>Aprobar</small>":""}</button>`).join("");
+  renderGradeResult();
+}
+function renderGradeResult(){
+  const G = evalsOf(S.gk), r = gradeCalc(G.ev, G.goal);
+  const okSum = Math.abs(r.sumP - 100) < 0.01;
+  $("gSum").innerHTML = `<span class="${okSum?"st ok":"st wn"}">Porcentajes: ${+r.sumP.toFixed(2)}%${okSum?"":", deben sumar 100%"}</span>
+    <span class="st lk">Evaluado: ${+r.doneP.toFixed(2)}%</span><span class="st lk">Falta: ${+r.pendP.toFixed(2)}%</span>`;
+  const accTxt = r.acc.toFixed(2).replace(".", ",");
+  const bar = `<div class="gbar" aria-hidden="true"><i style="width:${Math.min(100, r.acc/9*100)}%"></i><b style="left:${4.5/9*100}%"></b><b class="mx" style="left:${Math.min(100,(r.acc+9*r.pendP/100)/9*100)}%"></b></div>`;
+  let h = `<div class="gacc"><span>Llevas acumulado</span><strong>${accTxt}</strong><span>de 9</span></div>${bar}`;
+  if (!okSum){
+    h += `<p class="gmsg wn">Revisa los porcentajes: suman ${+r.sumP.toFixed(2)}% y deben sumar 100%.</p>`;
+  } else if (r.pendP <= 0){
+    const ap = r.finalNow >= 5;
+    h += `<div class="gbig ${ap?"ok":"bad"}"><span>Nota definitiva</span><strong>${r.finalNow}</strong><em>${accTxt} redondeado, ${ap?"aprobada 🎉":"reprobada"}</em></div>`;
+  } else {
+    const n = r.need(G.goal);
+    const cada = r.nPend > 1 ? ` en cada uno de los ${r.nPend} parciales que faltan` : " en el parcial que falta";
+    if (n === 0) h += `<div class="gbig ok"><span>Meta: ${G.goal}</span><strong>¡Ya la tienes!</strong><em>Con lo que llevas ya alcanzas ${G.goal} de definitiva, aunque saques 1 en lo que falta.</em></div>`;
+    else if (n === null) h += `<div class="gbig bad"><span>Meta: ${G.goal}</span><strong>No alcanza</strong><em>Aunque saques 100${cada}, lo máximo que puedes tener es ${r.maxFinal}.</em></div>`;
+    else h += `<div class="gbig"><span>Para tener ${G.goal} necesitas</span><strong>${n}<small>/100</small></strong><em>${cada.trim().replace(/^en/,"En")} (${+r.pendP.toFixed(2)}% de la nota). Equivale a ${conv(n).toFixed(1).replace(".",",")} de 9.</em></div>`;
+    h += `<div class="gtable">${[5,6,7,8,9].map(g => { const x = r.need(g);
+        return `<div class="${g===G.goal?"on":""}"><span>${g}</span><b>${x===0?"✓":x===null?"✗":x}</b></div>`; }).join("")}</div>
+      <p class="note" style="margin:6px 0 0">Nota mínima de 1 a 100 que necesitas${r.nPend>1?" en cada parcial pendiente":""} para cada definitiva. ✓ ya la tienes, ✗ no alcanza.</p>`;
+  }
+  $("gRes").innerHTML = h;
+}
+
+// ---------- render ----------
+const $ = id => document.getElementById(id);
+const DOT = '<svg class="dot" viewBox="0 0 28 28" aria-hidden="true"><circle class="r" cx="14" cy="14" r="11.5"/><path class="k" d="M8.8 14.4l3.5 3.5 7-7.6"/></svg>';
+const SPROUT = cls => `<svg class="sp ${cls}" viewBox="0 0 28 28" aria-hidden="true"><path class="m" d="M3 24.5c2.3-4.8 6.5-7.2 11-7.2s8.7 2.4 11 7.2z"/><g class="pl"><path class="s" d="M14 19V10.5"/><path class="l" d="M14 13.2c-1.1-3.7-4.1-5.6-7.8-5.2.6 3.6 3.5 5.8 7.8 5.2z"/><path class="l" d="M14 11.4c.8-3.9 3.9-6 7.8-5.8-.4 3.8-3.5 6.2-7.8 5.8z"/></g></svg>`;
+const CHECK = DOT + SPROUT("");   // círculo = pendiente/aprobada · brote = inscrita
+$("mkEIcon").outerHTML = SPROUT("mk");
+const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+function statusOf(c){
+  if (S.a.has(c.key)) return '<span class="st ok">Aprobada</span>';
+  if (S.e.has(c.key)) return '<span class="st en">Inscrita, cursando</span>';
+  if (c.elective){ const eA = electCount(S.a);
+    if (eA >= ELECT_NEEDED) return '<span class="st lk">Ya tienes las 3 electivas</span>';
+    if (eA < elAllowed(S.a)) return '<span class="st av">Disponible</span>';
+    return `<span class="st lk">Bloqueada</span><span>Falta: ${nm(eA===0 && !S.a.has(EL_SLOTS[0].pre) ? EL_SLOTS[0].pre : EL_SLOTS[1].pre)}</span>`; }
+  const m = missing(c, S.a, ucOf(S.a));
+  if (!m.length){
+    const pend = (c.co||[]).filter(k=>!S.a.has(k));
+    return pend.length ? `<span class="st av">Disponible</span><span>junto con ${pend.map(nm).join(", ")}</span>` : '<span class="st av">Disponible</span>';
+  }
+  return `<span class="st lk">Bloqueada</span><span>Falta: ${m.join(", ")}</span>`;
+}
+let FRESH = new Set();   // las materias recién aprobadas: su ramita crece con animación
+function row(c){
+  const on = S.a.has(c.key), blk = c.blk && INTEG[c.sem];
+  return `<button class="row${S.e.has(c.key)?" enr":""}${on&&FRESH.has(c.key)?" fresh":""}${blk?" blk":""}" data-k="${c.key}" aria-pressed="${on}"${blk?` style="--bc:${blk[1]}"`:""}>
+    <span class="ck">${CHECK}</span>
+    <span class="tx"><span class="nm"><span class="nt">${c.name}</span></span>
+      <span class="sub">${c.code?`<span class="code">${c.code}</span>`:""}${statusOf(c)}</span></span>
+    <span class="uc">${c.uc ? c.uc + " U.C." : "Sin U.C."}</span></button>`;
+}
+function filterEl(){
+  const list = $("elList"); if (!list) return;
+  const q = norm(EL_Q.trim()); let shown = 0;
+  list.querySelectorAll(".row").forEach(r => { const hide = !!q && !norm(nm(r.dataset.k)).includes(q); r.hidden = hide; if (!hide) shown++; });
+  const none = $("elNone"); if (none) none.hidden = !EL_OPEN || shown > 0;
+}
+function electGroup(){
+  const n = ELECT.filter(e=>S.a.has(e.key)).length;
+  const mine = ELECT.filter(e=>S.a.has(e.key)||S.e.has(e.key)), list = EL_OPEN ? ELECT : mine;
+  return `<div class="sem" id="elSec"><div class="semh"><span class="chip" style="${chipStyle(0)}">EL</span>
+      <div><h2>Electivas</h2><div class="meta">${Math.min(n,ELECT_NEEDED)}/${ELECT_NEEDED} aprobadas, 2 U.C. cada una</div></div>
+      <button class="all eltg" aria-expanded="${EL_OPEN}">${EL_OPEN?"Ocultar la lista":`Ver las ${ELECT.length}`}</button></div>
+    <p class="note" style="margin-top:0">Son 3: una en el semestre V (pide <b>Enfoque Sistémico</b>) y dos en el IX (piden <b>Proyecto Integrador de Producción de Perennes</b>). Abre la lista y toca las que aprobaste.</p>
+    ${EL_OPEN?`<div class="elsearch"><input id="elQ" type="search" placeholder="Buscar electiva" value="${EL_Q.replace(/"/g,"&quot;")}" aria-label="Buscar electiva" autocomplete="off"></div>`:""}
+    <div class="list" id="elList">${list.length ? list.map(row).join("") : '<div class="empty pad">Todavía no marcas electivas.</div>'}</div>
+    <p class="note" id="elNone" hidden>Ninguna electiva tiene ese nombre.</p></div>`;
+}
+function tapRow(tp, uc){
+  const m = tp.pre.filter(k=>!S.a.has(k)).map(nm); if (uc < tp.minUC) m.push(`${tp.minUC} U.C. (llevas ${uc})`);
+  return `<div class="trow"><div class="tx"><div class="nm">${tp.name}</div>
+    <div class="sub"><span class="code">${tp.code}</span>${m.length?`<span class="st lk">Bloqueada</span><span>Falta: ${m.join(", ")}</span>`:'<span class="st av">Disponible</span>'}</div></div>
+    <span class="uc">12 U.C.</span></div>`;
+}
+function renderMaterias(uc){
+  let h = "";
+  for (let s=1;s<=9;s++){
+    const cs = CORE.filter(c=>c.sem===s), cu = cs.filter(c=>c.uc>0);
+    const done = cs.filter(c=>S.a.has(c.key)), ucS = cs.reduce((t,c)=>t+c.uc,0), ucD = done.reduce((t,c)=>t+c.uc,0);
+    const all = done.length===cs.length, ig = INTEG[s];
+    const el = s===5 ? " + 1 electiva" : s===9 ? " + 2 electivas" : "";
+    h += `<div class="sem"><div class="semh"><span class="chip" style="${chipStyle(s)}">${ROMAN[s]}</span>
+      <div><h2>Semestre ${ROMAN[s]}</h2><div class="meta">${done.filter(c=>c.uc>0).length}/${cu.length} materias, ${ucD}/${ucS} U.C.${el}</div></div>
+      ${MARK==="a"?`<button class="all" data-sem="${s}" data-on="${all?0:1}">${all?"Desmarcar":"Marcar todo"}</button>`:""}</div>
+      ${ig?`<p class="integ" style="--bc:${ig[1]}"><i></i><span><b>${ig[0]}.</b> Las materias con la franja de color son correquisitos entre sí: se inscriben juntas.</span></p>`:""}
+      <div class="list">${cs.map(row).join("")}</div>
+      ${s===5?'<p class="note">La <b>electiva</b> del semestre V se marca en la lista de Electivas, más abajo. El <b>Servicio Comunitario</b> no da U.C. y va a partir del V semestre: la app lo habilita al llegar a 60 U.C. (semestres I a IV).</p>':""}
+      ${s===9?'<p class="note">Las <b>2 electivas</b> del IX se marcan en la lista de Electivas, aquí abajo.</p>':""}</div>`;
+  }
+  h += electGroup();
+  h += `<div class="sem"><div class="semh"><span class="chip" style="${chipStyle(10)}">X</span>
+    <div><h2>Trabajo de Aplicación Profesional</h2><div class="meta">12 U.C., eliges una modalidad</div></div></div>
+    <div class="list">${TAPS.map(tp => tapRow(tp, uc)).join("")}</div>
+    <p class="note">El Proyecto Especial de Grado pide 120 U.C. y, según el esquema de prelaciones, Metodología de la Investigación y Diseño de Experimentos. Las Pasantías piden 148 U.C. Llevas ${uc} de ${COURSE_UC} U.C. en materias.</p></div>`;
+  $("semList").innerHTML = h;
+  filterEl(); vines();
+}
+// Dibuja la ramita sobre cada línea del nombre de las materias aprobadas (por encima del texto, como un tachado)
+function vines(){
+  const list = $("semList"); if (!list || list.offsetParent === null) return;
+  list.querySelectorAll('.row[aria-pressed="true"]').forEach(r => {
+    const old = r.querySelector(".vine"); if (old) old.remove();
+    const R = r.getBoundingClientRect(), rs = [...r.querySelector(".nt").getClientRects()].filter(q => q.width > 2);
+    if (!rs.length || !R.width) return;
+    const grow = r.classList.contains("fresh"), total = rs.reduce((t,q) => t + q.width, 0), T = Math.min(.9, .25 + total/500);
+    let acc = 0, svg = "", k = 0;
+    rs.forEach((q, li) => {
+      const x0 = q.left - R.left - 2, x1 = q.right - R.left + 2, y = +(q.top - R.top + q.height*.55).toFixed(1), w = x1 - x0;
+      const n = Math.max(1, Math.round(w/15)), sw = w/n, t0 = acc/total*T, dur = Math.max(.05, w/total*T);
+      let d = `M${x0.toFixed(1)} ${y}`;
+      for (let i=0;i<n;i++) d += ` Q${(x0 + sw*(i+.5)).toFixed(1)} ${(y + (i%2 ? 1.4 : -1.4)).toFixed(1)} ${(x0 + sw*(i+1)).toFixed(1)} ${y}`;
+      svg += `<path class="st" d="${d}" pathLength="1" style="animation-delay:${t0.toFixed(2)}s;animation-duration:${dur.toFixed(2)}s"/>`;
+      for (let x = x0 + 11; x < x1 - 8; x += 23, k++){
+        const up = k % 2 === 0, del = (t0 + (x - x0)/w*dur).toFixed(2);
+        svg += `<g transform="translate(${x.toFixed(1)} ${(y + (up ? -.6 : .6)).toFixed(1)}) rotate(${up ? -38 : 38})"><path class="lf" d="M0 0Q3-2.5 6.6 0Q3 2.5 0 0z" style="animation-delay:${del}s"/></g>`;
+      }
+      if (li === rs.length - 1){   // brote final: dos hojitas y un grano de trigo
+        const del = (t0 + dur).toFixed(2);
+        svg += `<g transform="translate(${x1.toFixed(1)} ${y})"><g transform="rotate(-62)"><path class="lf" d="M0 0Q3.4-2.8 7.4 0Q3.4 2.8 0 0z" style="animation-delay:${del}s"/></g>`
+          + `<g transform="rotate(-10)"><path class="lf" d="M0 0Q3.4-2.8 7.4 0Q3.4 2.8 0 0z" style="animation-delay:${del}s"/></g>`
+          + `<g transform="rotate(-36)"><ellipse class="bd" cx="7.6" cy="0" rx="2.6" ry="1.7" style="animation-delay:${del}s"/></g></g>`;
+      }
+      acc += q.width;
+    });
+    r.insertAdjacentHTML("beforeend", `<svg class="vine${grow ? " anim" : ""}" width="${Math.ceil(R.width)}" height="${Math.ceil(R.height)}" aria-hidden="true">${svg}</svg>`);
+  });
+}
+function whyChips(c){
+  if (c.slot) return '<span class="st av">Electiva</span>';
+  const w = [];
+  if (CHAIN[c.key] >= 2) w.push(`<span class="st wn">Ruta crítica</span>`);
+  if (UNLOCK[c.key]) w.push(`<button class="st av opener" data-open="${c.key}" aria-expanded="${OPEN.has(c.key)}">Abre ${UNLOCK[c.key]} materia${UNLOCK[c.key]>1?"s":""} <span class="car" aria-hidden="true">▾</span></button>`);
+  if ((c.co||[]).length) w.push(`<span class="st lk">Correquisito: ${c.co.map(nm).join(", ")}</span>`);
+  if (!w.length) w.push('<span class="st lk">No prela otras</span>');
+  return w.join("");
+}
+function opensPanel(c){
+  if (!OPEN.has(c.key)) return "";
+  const direct = (DEPS[c.key]||[]).map(k=>BY[k]).sort((p,q)=>p.sem-q.sem);
+  const dset = new Set(direct.map(x=>x.key));
+  const later = [...unlockSet(c.key)].filter(k=>!dset.has(k)).map(k=>BY[k]).sort((p,q)=>p.sem-q.sem);
+  const item = d => { const other = [...d.pre, ...d.co].filter(p=>p!==c.key && !S.a.has(p)).map(nm);
+    return `<li><span class="chip" style="${chipStyle(d.sem)};height:20px;min-width:30px;font-size:11px">${ROMAN[d.sem]}</span>
+      <span><b>${d.name}</b>${other.length?`<em>También necesita: ${other.join(", ")}</em>`:`<em>Se abre apenas apruebes esta</em>`}</span></li>`; };
+  let h = `<div class="opens"><p>Al aprobarla puedes inscribir:</p><ul>${direct.map(item).join("")}</ul>`;
+  if (later.length){
+    const bySem = {}; later.forEach(d => (bySem[d.sem] = bySem[d.sem]||[]).push(d.name));
+    h += `<p>Y más adelante, en cadena:</p><div class="later">${Object.keys(bySem).map(s=>`<div><span class="chip" style="${chipStyle(+s)};height:18px;min-width:28px;font-size:10.5px">${ROMAN[s]}</span> ${bySem[s].join(", ")}</div>`).join("")}</div>`;
+  }
+  return h + `</div>`;
+}
+const optsText = c => c.options.length > 8 ? `<b>Puedes elegir</b> cualquiera de las ${c.options.length} electivas de la lista (en Materias).` : `<b>Puedes elegir:</b> ${c.options.map(e=>e.name).join(", ")}`;
+function renderInscribir(){
+  const L = S.lim[S.mode];
+  $("mSem").setAttribute("aria-pressed", S.mode==="sem"); $("mInt").setAttribute("aria-pressed", S.mode==="int");
+  $("oUC").textContent = L.uc; $("oN").textContent = L.n;
+  const r = recommend(plusE(), L, S.x);
+  $("recList").innerHTML = r.picked.length ? r.picked.map(c => `<div class="ri">
+      <span class="chip" style="${chipStyle(c.slot?0:c.sem)}">${c.slot?"EL":ROMAN[c.sem]}</span>
+      <div class="tx"><div class="nm" style="font-weight:600">${c.name}${c.code?` <span class="code">${c.code}</span>`:""}</div>
+        <div class="why">${whyChips(c)}</div>
+        ${c.slot?"":opensPanel(c)}
+        ${c.slot?`<div class="opts"><div>${optsText(c)}</div></div>`:""}</div>
+      <span class="uc">${c.uc}</span></div>`).join("")
+    : `<div class="empty">${CORE.every(c=>S.a.has(c.key)) ? "¡Ya aprobaste todas las materias! Te queda el Trabajo de Aplicación Profesional: Proyecto Especial de Grado o Pasantías." : "No hay materias disponibles con estos límites. Sube el máximo de U.C. o revisa las que marcaste como no ofertadas."}</div>`;
+  $("recNote").hidden = !S.e.size;
+  if (S.e.size) $("recNote").textContent = `Para el próximo semestre, suponiendo que apruebas las ${S.e.size} materia${S.e.size>1?"s":""} que estás cursando.`;
+  $("recTot").innerHTML = r.picked.length ? `<span>${r.n} materia${r.n!==1?"s":""}</span><b>${r.uc} U.C.</b>` : "";
+  const others = r.cand.filter(c=>!r.pk.has(c.key));
+  const ex = [...S.x].map(k=>BY[k]).filter(Boolean);
+  let h = others.map(c => `<div class="mini"><span class="chip" style="${chipStyle(c.sem)};height:24px;min-width:34px;font-size:13px">${ROMAN[c.sem]}</span>
+      <div class="tx">${c.name} <span class="uc" style="font-size:13px">${c.uc} U.C.</span></div>
+      <button class="ghost" data-x="${c.key}">No la ofertaron</button></div>`).join("");
+  if (!others.length) h = '<div class="empty">No hay más materias disponibles fuera de la recomendación.</div>';
+  if (ex.length) h += `<p class="note" style="margin-top:12px">Marcadas como no ofertadas:</p>` + ex.map(c => `<div class="mini"><div class="tx" style="color:var(--muted)">${c.name}</div>
+      <button class="ghost" data-in="${c.key}">Volver a incluir</button></div>`).join("");
+  $("otherList").innerHTML = h;
+}
+function renderPlan(){
+  const p = projection();
+  const n = p.sems.length;
+  $("sSem").textContent = p.complete ? (n + 1) : "–";
+  $("planTitle").textContent = p.complete ? `Te faltan ${n} semestre${n!==1?"s":""}${S.e.size?" (contando el actual)":""} + el Trabajo de Aplicación Profesional` : "Tu ruta hasta el grado";
+  const off = p.sems.length && p.sems[0].current ? 0 : 1;
+  let h = p.sems.map((r,i) => `<div class="ps${r.current?" cur":""}"><header><b>${r.current?"Semestre actual (inscritas)":(i+off===1?"Próximo semestre":(i+off)+".º semestre")}</b><span>${r.n} materia${r.n!==1?"s":""}, ${r.uc} U.C.</span></header>
+    <ul>${r.picked.map(c=>`<li><i style="background:${SEMC[c.slot?0:c.sem]}"></i><span>${c.name}</span><em>${c.uc} U.C.</em></li>`).join("")}</ul></div>`).join("");
+  if (p.complete) h += `<div class="ps fin"><header><b>Trabajo de Aplicación Profesional</b><span>12 U.C.</span></header>
+    <ul><li><span>El último paso: Proyecto Especial de Grado (desde 120 U.C.) o Pasantías (desde 148 U.C.).</span></li></ul></div>`;
+  else if (!n) h += `<div class="empty">Marca tus materias aprobadas para calcular tu ruta.</div>`;
+  else h += `<div class="empty">Con los límites actuales no se completa el pensum. Revisa el máximo de U.C.</div>`;
+  $("planList").innerHTML = h;
+}
+function renderSummary(uc){
+  $("sUC").textContent = uc;
+  const ec = [...S.e].map(k=>BY[k]);
+  $("sCur").hidden = !ec.length;
+  if (ec.length) $("sCur").innerHTML = `${SPROUT("")}Cursando ${ec.length} materia${ec.length>1?"s":""}, ${ec.reduce((t,c)=>t+c.uc,0)} U.C. este semestre`;
+  const nCore = CORE.filter(c=>c.uc>0), done = nCore.filter(c=>S.a.has(c.key)).length;
+  $("sMat").textContent = `${done}/${nCore.length}`;
+  $("sEl").textContent = `${electCount(S.a)}/${ELECT_NEEDED}`;
+  let bar = "";
+  for (let s=1;s<=9;s++){ const u = CORE.filter(c=>c.sem===s&&S.a.has(c.key)).reduce((t,c)=>t+c.uc,0); if(u) bar += `<i style="width:${u/TOTAL_UC*100}%;background:${SEMC[s]}"></i>`; }
+  const ue = electCount(S.a)*ELECT_UC; if (ue) bar += `<i style="width:${ue/TOTAL_UC*100}%;background:${SEMC[0]}"></i>`;
+  $("sBar").innerHTML = bar;
+}
+function render(){
+  const uc = ucOf(S.a);
+  renderSummary(uc); renderMaterias(uc); renderInscribir(); renderPlan(); renderNotas();
+  $("bkCode").textContent = encode();
+}
+
+// ---------- respaldo ----------
+function hexOf(set){
+  let bits = ORDER.map(k => set.has(k)?1:0); while (bits.length % 4) bits.push(0);
+  let hex = ""; for (let i=0;i<bits.length;i+=4) hex += ((bits[i]<<3)|(bits[i+1]<<2)|(bits[i+2]<<1)|bits[i+3]).toString(16);
+  return hex.toUpperCase();
+}
+function encode(){ return "AG1-" + hexOf(S.a) + (S.e.size ? "-" + hexOf(S.e).replace(/0+$/,"") : ""); }
+function decode(code){
+  const m = /^AG1-([0-9A-F]+)(?:-([0-9A-F]*))?$/i.exec(code.trim().replace(/\s+/g,""));
+  if (!m) return null;
+  const read = hx => { const set = new Set(); [...(hx||"")].forEach((h,i) => { const v = parseInt(h,16); for (let b=0;b<4;b++) if (v & (8>>b)) { const k = ORDER[i*4+b]; if (k) set.add(k); } }); return set; };
+  const a = read(m[1]); a.e = read(m[2]); return a;
+}
+
+// ---------- eventos ----------
+function toggle(k){
+  if (MARK==="e"){ if (S.e.has(k)) S.e.delete(k); else { S.e.add(k); S.a.delete(k); } }
+  else { if (S.a.has(k)) S.a.delete(k); else { S.a.add(k); S.e.delete(k); FRESH.add(k); } }
+  save(); render(); FRESH.clear(); }
+function setMark(m){ MARK = m; $("mkA").setAttribute("aria-pressed", m==="a"); $("mkE").setAttribute("aria-pressed", m==="e"); render(); }
+$("semList").addEventListener("click", e => {
+  if (e.target.closest(".eltg")){ EL_OPEN = !EL_OPEN; if (!EL_OPEN) EL_Q = ""; renderMaterias(ucOf(S.a));
+    if (EL_OPEN) $("elSec").scrollIntoView({behavior:"smooth", block:"start"}); return; }
+  const r = e.target.closest(".row"); if (r) return toggle(r.dataset.k);
+  const b = e.target.closest(".all"); if (b){ const s = +b.dataset.sem, on = b.dataset.on==="1";
+    CORE.filter(c=>c.sem===s).forEach(c => { if (on){ if (!S.a.has(c.key)) FRESH.add(c.key); S.a.add(c.key); S.e.delete(c.key); } else S.a.delete(c.key); }); save(); render(); FRESH.clear(); }
+});
+$("semList").addEventListener("input", e => { if (e.target.id === "elQ"){ EL_Q = e.target.value; filterEl(); } });
+$("gRows").addEventListener("input", e => {
+  const row = e.target.closest(".grow"); if (!row) return;
+  const G = evalsOf(S.gk), i = +row.dataset.i, f = e.target.dataset.f; if (!f) return;
+  G.ev[i][f] = e.target.value;
+  if (f === "n") row.querySelector(".gc").textContent = num(e.target.value)!==null ? conv(e.target.value).toFixed(1) : "–";
+  save(); renderGradeResult();
+});
+$("gRows").addEventListener("click", e => { const d = e.target.closest("[data-del]"); if (!d) return;
+  const G = evalsOf(S.gk); G.ev.splice(+d.dataset.del, 1); if (!G.ev.length) G.ev.push({l:"Parcial 1", p:100, n:""}); save(); renderNotas(); });
+$("gAdd").onclick = () => { const G = evalsOf(S.gk); if (G.ev.length >= 12) return; G.ev.push({l:"Parcial " + (G.ev.length+1), p:"", n:""}); save(); renderNotas();
+  const ins = $("gRows").querySelectorAll('input[data-f="p"]'); ins[ins.length-1].focus(); };
+$("gReset").onclick = () => { S.g[S.gk] = {ev:defEvals(), goal:5}; save(); renderNotas(); };
+$("gCount").addEventListener("click", e => { const b = e.target.closest("[data-count]"); if (!b) return;
+  const n = +b.dataset.count, G = evalsOf(S.gk), base = Math.floor(100/n), extra = 100 - base*n;
+  G.ev = Array.from({length:n}, (_,i) => ({l: (G.ev[i] && G.ev[i].l) || ("Parcial " + (i+1)), p: base + (i >= n - extra ? 1 : 0), n: G.ev[i] ? G.ev[i].n : ""}));
+  save(); renderNotas(); });
+$("gGoals").addEventListener("click", e => { const b = e.target.closest("[data-goal]"); if (!b) return; evalsOf(S.gk).goal = +b.dataset.goal; save(); renderNotas(); });
+$("cvIn").addEventListener("input", e => { const v = num(e.target.value); $("cvOut").textContent = v===null ? "–" : conv(v).toFixed(1).replace(".",","); });
+$("mkA").onclick = () => setMark("a"); $("mkE").onclick = () => setMark("e");
+$("finSem").onclick = () => { if (!S.e.size){ $("finMsg").className="msg bad"; $("finMsg").textContent="No tienes materias marcadas como inscritas."; return; }
+  const n = S.e.size; S.e.forEach(k=>S.a.add(k)); S.e = new Set(); save(); render();
+  $("finMsg").className="msg ok"; $("finMsg").textContent=`Listo: ${n} materia${n>1?"s":""} pasaron a aprobadas. Si reprobaste alguna, desmárcala en Materias.`; };
+$("recList").addEventListener("click", e => {
+  const o = e.target.closest(".opener"); if (!o) return;
+  const k = o.dataset.open; OPEN.has(k) ? OPEN.delete(k) : OPEN.add(k); renderInscribir();
+});
+$("otherList").addEventListener("click", e => {
+  const x = e.target.closest("[data-x]"), i = e.target.closest("[data-in]");
+  if (x){ S.x.add(x.dataset.x); save(); render(); } if (i){ S.x.delete(i.dataset.in); save(); render(); }
+});
+$("mSem").onclick = () => { S.mode="sem"; save(); render(); };
+$("mInt").onclick = () => { S.mode="int"; save(); render(); };
+const bump = (f,d,min,max) => () => { const L = S.lim[S.mode]; L[f] = Math.max(min, Math.min(max, L[f]+d)); save(); render(); };
+$("ucMinus").onclick = bump("uc",-1,1,30); $("ucPlus").onclick = bump("uc",1,1,30);
+$("nMinus").onclick = bump("n",-1,1,12); $("nPlus").onclick = bump("n",1,1,12);
+
+const TABS = ["materias","inscribir","plan","notas"];
+function show(t){ if (!TABS.includes(t)) t = "materias";
+  TABS.forEach(x => { $("v-"+x).hidden = x!==t; $("t-"+x).setAttribute("aria-selected", x===t); });
+  $("tools").hidden = t === "notas"; if (t === "materias") vines(); }
+TABS.forEach(t => $("t-"+t).onclick = () => { if (location.hash !== "#"+t) location.hash = t; else show(t); window.scrollTo({top:$("v-materias").parentElement.offsetTop-70, behavior:"smooth"}); });
+window.addEventListener("hashchange", () => show(location.hash.slice(1)));
+
+$("qSem").innerHTML = [1,2,3,4,5,6,7,8,9].map(s=>`<option value="${s}">Hasta el semestre ${ROMAN[s]}</option>`).join("");
+$("qSem").value = "4";
+$("qGo").onclick = () => { const s = +$("qSem").value; CORE.filter(c=>c.sem<=s).forEach(c=>{ S.a.add(c.key); S.e.delete(c.key); }); save(); render(); show("materias"); };
+
+$("bkCopy").onclick = async () => { const c = encode();
+  try { await navigator.clipboard.writeText(c); $("bkMsg").className="msg ok"; $("bkMsg").textContent = "Código copiado."; }
+  catch(e){ const r = document.createRange(); r.selectNodeContents($("bkCode")); const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    $("bkMsg").className="msg"; $("bkMsg").textContent = "Selecciona el código y cópialo manualmente."; } };
+$("bkLoad").onclick = () => { const a = decode($("bkIn").value);
+  if (!a){ $("bkMsg").className="msg bad"; $("bkMsg").textContent = "Ese código no es válido. Debe empezar por AG1-."; return; }
+  S.e = new Set([...a.e].filter(k=>!a.has(k))); S.a = new Set(a); save(); render(); $("bkIn").value=""; $("bkMsg").className="msg ok"; $("bkMsg").textContent = `Progreso cargado: ${a.size} materias aprobadas.`; };
+$("rst").onclick = () => { $("rst").hidden = true; $("rstYes").hidden = false; $("rstNo").hidden = false; };
+$("rstNo").onclick = () => { $("rst").hidden = false; $("rstYes").hidden = true; $("rstNo").hidden = true; };
+$("rstYes").onclick = () => { S.a = new Set(); S.e = new Set(); S.x = new Set(); save(); render(); $("rstNo").onclick(); };
+
+// ---------- Cuenta: guardar en la nube con Firebase (solo en la versión publicada) ----------
+const FB_CONFIG = null;   // aquí va el bloque firebaseConfig del proyecto de Firebase de Agronomía
+const FB_V = "10.12.2";
+(function cloud(){
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); } catch(e){}
+  if (!FB_CONFIG || location.protocol !== "https:") return;
+  const acct = $("acct"); acct.hidden = false;
+  const load = src => new Promise((ok, ko) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = ko; document.head.appendChild(s); });
+  const base = `https://www.gstatic.com/firebasejs/${FB_V}/`;
+  let auth = null, fs = null, unsub = null, user = null;
+  const ERR = {
+    "auth/invalid-email":"Ese correo no es válido.",
+    "auth/invalid-credential":"Correo o contraseña incorrectos.",
+    "auth/wrong-password":"Correo o contraseña incorrectos.",
+    "auth/user-not-found":"No hay ninguna cuenta con ese correo. Toca “Crear cuenta”.",
+    "auth/email-already-in-use":"Ya existe una cuenta con ese correo. Toca “Entrar”.",
+    "auth/weak-password":"La contraseña debe tener al menos 6 caracteres.",
+    "auth/missing-password":"Escribe tu contraseña.",
+    "auth/too-many-requests":"Demasiados intentos. Espera unos minutos y vuelve a probar.",
+    "auth/network-request-failed":"No hay conexión a internet.",
+    "auth/popup-closed-by-user":"Cerraste la ventana de Google antes de terminar.",
+    "auth/popup-blocked":"El teléfono bloqueó la ventana de Google. Usa correo y contraseña.",
+    "auth/operation-not-supported-in-this-environment":"Google no funciona dentro de la app instalada en este teléfono. Usa correo y contraseña.",
+    "auth/unauthorized-domain":"Este sitio todavía no está autorizado en Firebase."
+  };
+  const say = (t, ok) => { const m = $("acMsg"); m.className = "msg " + (ok ? "ok" : "bad"); m.textContent = t; };
+  const errMsg = e => ERR[e && e.code] || "No se pudo completar. Inténtalo otra vez.";
+  const sheet = $("acSheet");
+  const open = () => { sheet.hidden = false; $("acMsg").textContent = ""; renderAcct(); };
+  const close = () => { sheet.hidden = true; };
+  $("acBtn").onclick = open; $("acClose").onclick = close;
+  sheet.addEventListener("click", e => { if (e.target === sheet) close(); });
+  function renderAcct(){
+    $("acOut").hidden = !!user; $("acIn").hidden = !user;
+    $("acBtn").textContent = user ? "Mi cuenta" : "Guardar en la nube";
+    if (user) $("acWho").textContent = user.email || "tu cuenta de Google";
+  }
+  async function start(){
+    try {
+      await load(base + "firebase-app-compat.js");
+      await Promise.all([load(base + "firebase-auth-compat.js"), load(base + "firebase-firestore-compat.js")]);
+    } catch(e){ $("acBtn").disabled = true; $("acBtn").textContent = "Sin conexión"; return; }
+    firebase.initializeApp(FB_CONFIG);
+    auth = firebase.auth(); fs = firebase.firestore();
+    auth.languageCode = "es";
+    auth.onAuthStateChanged(async u => {
+      user = u; renderAcct();
+      if (unsub){ unsub(); unsub = null; }
+      if (!u){ dbRef = null; setSync(""); return; }
+      const ref = fs.collection("progreso").doc(u.uid);
+      setSync("Conectando con tu cuenta…");
+      try {
+        const snap = await ref.get();
+        const d = snap.exists ? snap.data() : null;
+        if (d && (d.t||0) > (S.t||0)){ applyRaw(d); try{ localStorage.setItem(LS, JSON.stringify(raw())); }catch(e){} render(); }
+        else if (S.t) { await ref.set(raw()); }
+        dbRef = ref;
+        setSync("Guardado en la nube con " + (u.email || "tu cuenta") + ". Aparece en cualquier teléfono donde inicies sesión.");
+        unsub = ref.onSnapshot(s => { if (s.metadata.hasPendingWrites || !s.exists) return; const c = s.data();
+          if ((c.t||0) > (S.t||0)){ applyRaw(c); try{ localStorage.setItem(LS, JSON.stringify(raw())); }catch(e){} render(); } }, () => {});
+      } catch(e){ setSync("No se pudo conectar con tu cuenta. Tu progreso sigue guardado en este teléfono."); }
+    });
+  }
+  $("acGoogle").onclick = async () => {
+    try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); say("Listo, ya iniciaste sesión.", true); setTimeout(close, 900); }
+    catch(e){ say(errMsg(e)); }
+  };
+  const creds = () => [$("acEmail").value.trim(), $("acPass").value];
+  $("acLogin").onclick = async () => { const [e,p] = creds();
+    try { await auth.signInWithEmailAndPassword(e,p); say("Listo, ya iniciaste sesión.", true); setTimeout(close, 900); } catch(err){ say(errMsg(err)); } };
+  $("acSignup").onclick = async () => { const [e,p] = creds();
+    try { await auth.createUserWithEmailAndPassword(e,p); say("Cuenta creada. Tus materias ya se guardan en la nube.", true); setTimeout(close, 1200); } catch(err){ say(errMsg(err)); } };
+  $("acReset").onclick = async () => { const [e] = creds();
+    if (!e) return say("Escribe tu correo arriba y vuelve a tocar aquí.");
+    try { await auth.sendPasswordResetEmail(e); say("Te enviamos un correo para cambiar la contraseña. Revisa también la carpeta de spam.", true); } catch(err){ say(errMsg(err)); } };
+  $("acEye").onclick = () => { const i = $("acPass"), show = i.type === "password";
+    i.type = show ? "text" : "password"; $("acEye").setAttribute("aria-pressed", show);
+    $("acEye").setAttribute("aria-label", show ? "Ocultar contraseña" : "Mostrar contraseña"); $("acEyeT").textContent = show ? "Ocultar" : "Ver"; };
+  $("acLogout").onclick = async () => { await auth.signOut(); say("Cerraste sesión. Tus materias siguen en este teléfono.", true); };
+  start();
+})();
+
+// ---------- inicio ----------
+loadLocal(); render(); show(location.hash.slice(1));
+{ let vt, vw = innerWidth; addEventListener("resize", () => { clearTimeout(vt); vt = setTimeout(() => { if (innerWidth !== vw){ vw = innerWidth; vines(); } }, 150); }); }
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(vines);
+
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js", {updateViaCache: "none"}).then(r => r.update()).catch(() => {}));
+}
+
+// Fondo: el mapa topográfico, quieto. Curvas de nivel en verde salvia, con las curvas índice en color tierra.
+(function(){
+  const cv = document.getElementById("bg"); if (!cv || !cv.getContext) return;
+  const ctx = cv.getContext("2d");
+  let W = 0, H = 0;
+  function noise(cell){ const gw = Math.ceil(W/cell)+3, gh = Math.ceil(H/cell)+3, g = Array.from({length:gw*gh}, () => Math.random()), sm = x => x*x*(3-2*x);
+    return (x,y) => { const fx = x/cell, fy = y/cell, ix = Math.floor(fx), iy = Math.floor(fy), u = sm(fx-ix), v = sm(fy-iy), at = (i,j) => g[j*gw+i];
+      const a = at(ix,iy), b = at(ix+1,iy), c = at(ix,iy+1), d = at(ix+1,iy+1);
+      return a + (b-a)*u + (c-a)*v + (a-b-c+d)*u*v; }; }
+  function build(){
+    const dpr = Math.min(2, window.devicePixelRatio||1); W = innerWidth; H = innerHeight;
+    cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.lineCap = "round";
+    const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,"#F0F4E6"); g.addColorStop(1,"#E4ECD5"); ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+    const sun = ctx.createRadialGradient(W*.92,0,0,W*.92,0,Math.max(W,H)*.6); sun.addColorStop(0,"rgba(240,200,90,.24)"); sun.addColorStop(1,"rgba(240,200,90,0)");
+    ctx.fillStyle = sun; ctx.fillRect(0,0,W,H);
+    const n1 = noise(Math.max(170, W/4)), n2 = noise(75), f = (x,y) => .78*n1(x,y) + .22*n2(x,y);
+    const st = 9, cols = Math.ceil(W/st)+1, rows = Math.ceil(H/st)+1, v = new Float32Array(cols*rows);
+    for (let j=0;j<rows;j++) for (let i=0;i<cols;i++) v[j*cols+i] = f(i*st, j*st);
+    // tinte hipsométrico: un poco más verde en lo "alto"
+    const tw = Math.ceil(W/8)+1, th = Math.ceil(H/8)+1, tcv = document.createElement("canvas"); tcv.width = tw; tcv.height = th;
+    const tc = tcv.getContext("2d"), img = tc.createImageData(tw, th);
+    for (let j=0;j<th;j++) for (let i=0;i<tw;i++){ const k = (j*tw+i)*4; img.data[k] = 63; img.data[k+1] = 125; img.data[k+2] = 36; img.data[k+3] = Math.max(0, Math.min(255, (f(i*8, j*8)-.45)*70)); }
+    tc.putImageData(img, 0, 0); ctx.imageSmoothingEnabled = true; ctx.drawImage(tcv, 0, 0, tw*8, th*8);
+    // marching squares: bordes 0 arriba, 1 derecha, 2 abajo, 3 izquierda
+    const SEG = {1:[[3,2]],2:[[2,1]],3:[[3,1]],4:[[0,1]],5:[[3,0],[2,1]],6:[[0,2]],7:[[3,0]],8:[[3,0]],9:[[0,2]],10:[[0,1],[3,2]],11:[[0,1]],12:[[3,1]],13:[[2,1]],14:[[3,2]]};
+    let li = 0;
+    for (let L=.2; L<.9; L+=.052, li++){
+      ctx.beginPath();
+      for (let j=0;j<rows-1;j++) for (let i=0;i<cols-1;i++){
+        const a = v[j*cols+i], bb = v[j*cols+i+1], c = v[(j+1)*cols+i+1], d = v[(j+1)*cols+i];
+        const idx = (a>L?8:0)|(bb>L?4:0)|(c>L?2:0)|(d>L?1:0); if (!idx || idx===15) continue;
+        const x = i*st, y = j*st, q = (p,r) => (L-p)/(r-p);
+        const E = [[x + st*q(a,bb), y], [x+st, y + st*q(bb,c)], [x + st*q(d,c), y+st], [x, y + st*q(a,d)]];
+        SEG[idx].forEach(([p,r]) => { ctx.moveTo(E[p][0], E[p][1]); ctx.lineTo(E[r][0], E[r][1]); });
+      }
+      const major = li % 4 === 0;
+      ctx.strokeStyle = major ? "rgba(122,82,47,.2)" : "rgba(63,125,36,.13)"; ctx.lineWidth = major ? 1.3 : .9; ctx.stroke();
+    }
+  }
+  let rt; addEventListener("resize",()=>{ clearTimeout(rt); rt=setTimeout(()=>{ if (Math.abs(innerWidth-W)>40||Math.abs(innerHeight-H)>120) build(); },200); });
+  build();
+})();
+
+// El campo, debajo del título: loma con pasto, dos surcos con plantas que crecen y se mecen, y el corte del suelo (sus horizontes).
+// Cada tanto pasa un tractor con sembradora, como el del logo: lo que deja atrás vuelve a ser semilla y crece otra vez.
+(function(){
+  const land = document.querySelector(".land"), cv = document.getElementById("field"); if (!cv || !cv.getContext) return;
+  const ctx = cv.getContext("2d");
+  const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const TAU = Math.PI*2, rnd = (a,b) => a + Math.random()*(b-a);
+  let W=0,H=0,dpr=1,base=null,B=0,ROWS=[],PR=[],tr=null,puffs=[],seeds=[],t=0,last=0,raf=0,nextPass=0,pass=0,key="";
+  function rr(c,x,y,w,h,r){ c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); }
+  function ground(b){
+    const edge = x => B + 10 + 3.5*Math.sin(x/150 + 1.3) + 2*Math.sin(x/53 + .4), s0 = B + 19;
+    b.beginPath(); b.moveTo(0, H); for (let x=0;x<=W+8;x+=8) b.lineTo(x, edge(x)); b.lineTo(W+8, H); b.closePath();
+    const gg = b.createLinearGradient(0, B+6, 0, B+22); gg.addColorStop(0,"#C3DBA0"); gg.addColorStop(1,"#A4C67F"); b.fillStyle = gg; b.fill();
+    b.strokeStyle = "rgba(63,125,36,.45)"; b.lineWidth = 1.2; b.beginPath(); b.moveTo(0, edge(0)); for (let x=8;x<=W+8;x+=8) b.lineTo(x, edge(x)); b.stroke();
+    for (let k=0;k<W/5;k++){ const x = rnd(0,W), y = edge(x) + rnd(1,8); b.strokeStyle = `rgba(${Math.random()<.5?"63,125,36":"120,165,80"},.5)`; b.lineWidth = .9;
+      b.beginPath(); b.moveTo(x, y); b.lineTo(x + rnd(-1.5,1.5), y - rnd(2,5)); b.stroke(); }
+    // tierra arada
+    const sg = b.createLinearGradient(0, s0, 0, B+62); sg.addColorStop(0,"#A47D55"); sg.addColorStop(1,"#8B6440");
+    b.fillStyle = sg; b.beginPath(); b.moveTo(0, s0); for (let x=8;x<=W+8;x+=8) b.lineTo(x, s0 + 1.5*Math.sin(x/90 + .4)); b.lineTo(W+8, B+62); b.lineTo(0, B+62); b.closePath(); b.fill();
+    ROWS.forEach(r => { const s = r.s;
+      b.fillStyle = "rgba(66,40,20,.3)"; b.fillRect(0, r.y + 2*s, W, 5*s);
+      const mg = b.createLinearGradient(0, r.y - 6*s, 0, r.y + 3*s); mg.addColorStop(0,"#BE966A"); mg.addColorStop(1,"#916841");
+      b.fillStyle = mg; b.beginPath(); b.moveTo(0, r.y + 3*s);
+      for (let x=0;x<=W+6;x+=6) b.lineTo(x, r.y - 5*s + Math.sin(x*.21)*.8);
+      b.lineTo(W+6, r.y + 3*s); b.closePath(); b.fill();
+      for (let k=0;k<W/6;k++){ b.fillStyle = `rgba(${Math.random()<.5?"88,57,30":"206,172,128"},${rnd(.25,.55).toFixed(2)})`;
+        b.beginPath(); b.arc(rnd(0,W), r.y + rnd(-3.5,4)*s, rnd(.6,1.4)*s, 0, TAU); b.fill(); } });
+    // corte del suelo: horizonte A (oscuro, con materia orgánica) y horizonte B (más claro, con piedritas)
+    b.fillStyle = "#5E3F24"; b.fillRect(0, B+62, W, 9);
+    b.fillStyle = "#94704C"; b.fillRect(0, B+71, W, H-(B+71));
+    b.fillStyle = "rgba(255,240,215,.25)"; b.fillRect(0, B+62, W, 1);
+    for (let k=0;k<W/9;k++){ b.fillStyle = `rgba(${Math.random()<.5?"60,38,20":"200,170,130"},${rnd(.3,.6).toFixed(2)})`; b.beginPath();
+      b.ellipse(rnd(0,W), rnd(B+73, H-2), rnd(.8,2), rnd(.6,1.3), rnd(0,3), 0, TAU); b.fill(); }
+    for (let k=0;k<W/14;k++){ const x = rnd(0,W); b.strokeStyle = "rgba(225,200,160,.35)"; b.lineWidth = .7; b.beginPath(); b.moveTo(x, B+63);
+      b.quadraticCurveTo(x + rnd(-3,3), B+66, x + rnd(-4,4), B+rnd(68,74)); b.stroke(); }   // raicillas
+  }
+  function sow(){
+    PR = ROWS.map(r => { const a = [], sp = 23*r.s;
+      for (let x = rnd(3, sp); x < W + sp; x += sp*rnd(.86,1.14)) a.push({x, g: reduce ? 1 : rnd(.45,1), k: rnd(.85,1.15), ph: rnd(0,TAU), type: Math.random() < .35 ? 1 : 0, sown: 0});
+      return a; });
+  }
+  function leaf(bx, by, ang, L, col){
+    if (L < .4) return;
+    const tx = bx + Math.sin(ang)*L, ty = by - Math.cos(ang)*L, mx = (bx+tx)/2, my = (by+ty)/2, w = L*.36, nx = Math.cos(ang)*w, ny = Math.sin(ang)*w;
+    ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(bx,by); ctx.quadraticCurveTo(mx+nx, my+ny, tx, ty); ctx.quadraticCurveTo(mx-nx, my-ny, bx, by); ctx.fill();
+    ctx.strokeStyle = "rgba(236,246,220,.6)"; ctx.lineWidth = .6; ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(mx + (tx-mx)*.6, my + (ty-my)*.6); ctx.stroke();
+  }
+  const LV = [[.36,-1,1,0],[.36,1,1,0],[.64,1,.85,.3],[.64,-1,.85,.3],[.9,-1,.62,.6],[.9,1,.62,.6]];   // posición en el tallo, lado, tamaño, crecimiento con que aparece
+  function plant(p, r){
+    const s = r.s, y = r.y - 2*s;
+    if (p.g < .06){ ctx.fillStyle = "#5A3A1E"; ctx.beginPath(); ctx.ellipse(p.x, y, 1.7*s, 1.1*s, 0, 0, TAU); ctx.fill(); return; }
+    const e = Math.min(1, (p.g-.06)/.94), ez = 1 - (1-e)*(1-e), h = (7 + 23*ez)*s*p.k;
+    const sw = reduce ? 0 : .1*Math.sin(t*1.25 - p.x*.012 + p.ph*.25), tx = p.x + sw*h*.5, ty = y - h, cy = y - h*.55;
+    ctx.strokeStyle = "#3F7D24"; ctx.lineWidth = Math.max(1, 1.5*s); ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(p.x, y); ctx.quadraticCurveTo(p.x, cy, tx, ty); ctx.stroke();
+    LV.forEach(([u, side, sz, th], i) => { if (ez <= th) return;
+      const gr = Math.min(1, (ez-th)/.3), v = 1-u, bx = v*v*p.x + 2*v*u*p.x + u*u*tx, by = v*v*y + 2*v*u*cy + u*u*ty;
+      leaf(bx, by, side*(1.05 - u*.45) + sw*1.4, 10*s*sz*gr*p.k, i%2 ? "#6DAA45" : "#579434"); });
+    if (p.type && ez > .9){ ctx.fillStyle = `rgba(227,174,42,${((ez-.9)/.1).toFixed(2)})`; ctx.beginPath(); ctx.ellipse(tx, ty - 2.4*s, 1.9*s, 3.4*s, sw, 0, TAU); ctx.fill(); }
+  }
+  function wheel(x, y, r, rot){ ctx.fillStyle = "#2B571A"; ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fill();
+    ctx.strokeStyle = "#6FA846"; ctx.lineWidth = r*.22; ctx.beginPath(); ctx.arc(x,y,r*.6,0,TAU); ctx.stroke();
+    ctx.fillStyle = "#D5E8B8"; ctx.beginPath(); ctx.arc(x,y,r*.2,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + Math.cos(rot)*r*.6, y + Math.sin(rot)*r*.6, r*.12, 0, TAU); ctx.fill(); }
+  function tractor(T, r){
+    const s = r.s; ctx.save(); ctx.translate(T.x, r.y + Math.sin(T.d*.32)*.5*s); ctx.scale(T.dir*s, s);
+    const D = "#2B571A", G = "#5E9E3A", rot = T.d/s;
+    ctx.strokeStyle = D; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-20,-8); ctx.lineTo(-33,-8); ctx.stroke();
+    ctx.fillStyle = "#6E4A2A"; ctx.beginPath(); rr(ctx,-45,-16,13,11,2); ctx.fill();
+    ctx.fillStyle = "#8A6240"; ctx.fillRect(-45,-16,13,3);
+    ctx.fillStyle = D; ctx.beginPath(); ctx.arc(-38.5,-3.2,3.2,0,TAU); ctx.fill();
+    ctx.fillStyle = G; ctx.beginPath(); rr(ctx,-3,-21,26,11,3); ctx.fill();
+    ctx.fillStyle = D; ctx.fillRect(20.5,-20,2.5,9);
+    ctx.fillStyle = G; ctx.fillRect(-21,-17,20,8);
+    ctx.strokeStyle = D; ctx.lineWidth = 2.6; ctx.lineJoin = "round"; ctx.beginPath(); ctx.moveTo(-19,-15); ctx.lineTo(-19,-35.5); ctx.lineTo(-2,-35.5); ctx.lineTo(-2,-15); ctx.stroke();
+    ctx.fillStyle = D; ctx.fillRect(-22.5,-38.5,24,3.6); ctx.fillRect(11,-31,2.6,10.5); ctx.fillRect(10.2,-32.6,4.2,2);
+    ctx.strokeStyle = D; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(-11,-12,14.6,Math.PI*1.06,Math.PI*1.94); ctx.stroke();
+    wheel(-11,-12,12, rot/12); wheel(15,-6.5,6.5, rot/6.5);
+    ctx.restore();
+  }
+  // B = dónde termina el título; la franja va de B a B+80 (el encabezado deja ese espacio con su padding)
+  function build(){
+    const top = document.querySelector(".top"), kids = [...top.children].map(e => e.getBoundingClientRect().bottom + scrollY);
+    B = Math.round(Math.max(...kids)) + 2;
+    dpr = Math.min(2, window.devicePixelRatio||1); W = innerWidth; H = B + 80;
+    land.style.height = H + "px"; cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
+    ROWS = [{y:B+36, s:.72}, {y:B+57, s:.9}];
+    base = document.createElement("canvas"); base.width = cv.width; base.height = cv.height;
+    const b = base.getContext("2d"); b.scale(dpr,dpr); b.lineCap = "round"; ground(b);
+    sow(); puffs = []; seeds = [];
+    if (reduce) tr = {ri:1, dir:1, x:W*.72, v:0, d:0};
+    else if (!tr) startPass(true);   // el primer viaje arranca ya dentro de la pantalla, para que se vea al abrir
+    draw();
+  }
+  function startPass(first){
+    const avg = PR.map(a => a.reduce((s,p)=>s+p.g,0)/Math.max(1,a.length)), ri = first ? 1 : avg.indexOf(Math.max(...avg)), s = ROWS[ri].s, dir = first ? 1 : (Math.random() < .5 ? 1 : -1);
+    pass++; tr = {ri, dir, x: first ? Math.min(W*.3, 140) : (dir > 0 ? -60*s : W + 60*s), v: 34*s, d: 0, sm: 0, sd: 0};
+  }
+  function step(dt){
+    t += dt;
+    PR.forEach(a => a.forEach(p => { if (p.g < 1) p.g = Math.min(1, p.g + dt/16); }));
+    if (!tr && t >= nextPass) startPass();
+    if (tr){ const r = ROWS[tr.ri], s = r.s;
+      tr.x += tr.dir*tr.v*dt; tr.d += tr.v*dt;
+      const sx = tr.x - tr.dir*38*s;   // la sembradora
+      PR[tr.ri].forEach(p => { if (p.sown !== pass && (tr.dir > 0 ? p.x < sx && p.x > sx - 40 : p.x > sx && p.x < sx + 40)) { p.g = 0; p.sown = pass; } });
+      tr.sd -= dt; if (tr.sd <= 0 && sx > -10 && sx < W + 10){ seeds.push({x: sx + rnd(-1.5,1.5)*s, y: r.y - 6*s, vy: 26*s, age: 0, gy: r.y - 2*s}); tr.sd = .1; }
+      tr.sm -= dt; if (tr.sm <= 0){ puffs.push({x: tr.x + tr.dir*12*s, y: r.y - 34*s, r: 2.2*s, age: 0, life: rnd(1.4,2), vx: -tr.dir*rnd(4,9), vy: -rnd(8,12)}); tr.sm = rnd(.4,.65); }
+      if (tr.dir > 0 ? tr.x - 50*s > W : tr.x + 50*s < 0){ tr = null; nextPass = t + rnd(1.5,3.5); }
+    }
+    seeds.forEach(q => { q.age += dt; q.y = Math.min(q.gy, q.y + q.vy*dt); }); seeds = seeds.filter(q => q.age < .45);
+    puffs.forEach(q => { q.age += dt; q.x += q.vx*dt; q.y += q.vy*dt; }); puffs = puffs.filter(q => q.age < q.life);
+  }
+  function draw(){
+    ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,cv.width,cv.height); ctx.drawImage(base,0,0); ctx.setTransform(dpr,0,0,dpr,0,0);
+    ROWS.forEach((r, ri) => {
+      PR[ri].forEach(p => plant(p, r));
+      if (tr && tr.ri === ri){
+        ctx.fillStyle = "#5A3A1E"; seeds.forEach(q => { ctx.beginPath(); ctx.arc(q.x, q.y, .95*r.s, 0, TAU); ctx.fill(); });
+        tractor(tr, r);
+      }
+    });
+    puffs.forEach(q => { const k = q.age/q.life; ctx.fillStyle = `rgba(120,132,108,${(.3*(1-k)).toFixed(3)})`; ctx.beginPath(); ctx.arc(q.x, q.y, q.r*(1 + k*2.2), 0, TAU); ctx.fill(); });
+  }
+  // la animación siempre corre; solo se dibuja cuando la franja está a la vista (arriba de la página)
+  function loop(now){ const dt = Math.min(.05,(now-last)/1000||0); last = now; step(dt);
+    if (now-(loop.f||0) > 33 && scrollY < H + 40){ loop.f = now; draw(); } raf = requestAnimationFrame(loop); }
+  const run = () => { cancelAnimationFrame(raf); if (!reduce){ last = performance.now(); raf = requestAnimationFrame(loop); } };
+  // se vuelve a armar si cambia el ancho o la altura del título (por ejemplo, cuando cargan las letras)
+  const check = () => { const k = innerWidth + ":" + Math.round(document.querySelector(".top .brand").getBoundingClientRect().height); if (k !== key){ key = k; build(); } };
+  let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(check, 200); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(check);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) run(); });
+  check(); run();
+})();
+
+// Al final de la página, el campo con riego por aspersión: cada aspersor lanza su chorro hacia arriba y va girando de un lado
+// a otro; las gotas caen en arco sobre las plantas y salpican al tocar la tierra. Debajo, la tubería enterrada, las raíces,
+// los horizontes A, B y C, y una lombriz que abre galerías.
+(function(){
+  const box = document.querySelector(".under"), cv = document.getElementById("soil"); if (!cv || !cv.getContext) return;
+  const ctx = cv.getContext("2d");
+  const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const TAU = Math.PI*2, rnd = (a,b) => a + Math.random()*(b-a);
+  const SY = 112, RISE = 44, G = 170, V = 158;   // superficie, altura del aspersor, gravedad y velocidad del chorro (px/s)
+  let W=0,H=0,dpr=1,base=null,P=[],SP=[],drops=[],splash=[],worms=[],t=0,last=0,raf=0,bw=0;
+  function fillBetween(b, top, bottom, c0, c1){
+    const g = b.createLinearGradient(0, top(0) - 6, 0, bottom ? bottom(0) + 6 : H); g.addColorStop(0, c0); g.addColorStop(1, c1);
+    b.fillStyle = g; b.beginPath(); b.moveTo(0, top(0)); for (let x=6;x<=W+6;x+=6) b.lineTo(x, top(x));
+    if (bottom){ for (let x=W+6;x>=0;x-=6) b.lineTo(x, bottom(x)); } else { b.lineTo(W+6, H); b.lineTo(0, H); }
+    b.closePath(); b.fill();
+  }
+  function specks(b, top, bottom, n, cols, rmax){
+    for (let k=0;k<n;k++){ const x = rnd(0,W), y0 = top(x), y1 = bottom ? bottom(x) : H, y = rnd(y0+2, y1-1);
+      b.fillStyle = `rgba(${cols[k%cols.length]},${rnd(.25,.6).toFixed(2)})`; b.beginPath(); b.ellipse(x, y, rnd(.6,rmax), rnd(.5,rmax*.7), rnd(0,3), 0, TAU); b.fill(); }
+  }
+  function root(b, x, y, ang, len, w, depth){
+    let px = x, py = y; const n = Math.max(3, Math.round(len/5)), fork = Math.round(n*rnd(.3,.6));
+    for (let s=1;s<=n;s++){
+      ang += rnd(-.28,.28); const nx = px + Math.cos(ang)*len/n, ny = py + Math.sin(ang)*len/n;
+      b.strokeStyle = `rgba(238,218,178,${(.6*(1 - s/n*.5)).toFixed(3)})`; b.lineWidth = Math.max(.4, w*(1 - s/n*.75));
+      b.beginPath(); b.moveTo(px,py); b.lineTo(nx,ny); b.stroke(); px = nx; py = ny;
+      if (depth < 3 && (s === fork || (s === n-1 && Math.random() < .5))) root(b, px, py, ang + (Math.random()<.5?-1:1)*rnd(.5,1), len*rnd(.4,.6), w*.6, depth+1);
+    }
+  }
+  function build(){
+    dpr = Math.min(2, window.devicePixelRatio||1); W = box.clientWidth; H = box.clientHeight; bw = W;
+    cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
+    base = document.createElement("canvas"); base.width = cv.width; base.height = cv.height;
+    const b = base.getContext("2d"); b.scale(dpr,dpr); b.lineCap = "round";
+    const bnd = (y0, a, ph) => x => y0 + a*Math.sin(x/70 + ph) + a*.5*Math.sin(x/23 + ph*2);
+    const yS = bnd(SY, .8, .3), yB = bnd(SY+48, 3.5, 1.7), yC = bnd(SY+98, 4.5, .6);
+    // horizontes del suelo: A oscuro con materia orgánica, B más claro, C con piedras de la roca madre
+    fillBetween(b, yS, yB, "#6A4628", "#573920");
+    fillBetween(b, yB, yC, "#97734D", "#86633F");
+    fillBetween(b, yC, null, "#B69A73", "#A48660");
+    specks(b, yS, yB, W/2, ["40,24,10","120,90,55","25,15,6"], 1.4);
+    specks(b, yB, yC, W/2.5, ["70,48,26","190,160,120"], 1.5);
+    specks(b, yC, null, W/3, ["120,105,85","220,200,170"], 1.8);
+    for (let k=0;k<W/26;k++){ const x = rnd(0,W), y = rnd(yC(x)+8, H-6), r = rnd(3,8);
+      b.fillStyle = Math.random()<.5 ? "#8E8475" : "#A1978A"; b.beginPath();
+      for (let i=0;i<7;i++){ const a = i/7*TAU, rr = r*rnd(.75,1.1); b.lineTo(x + Math.cos(a)*rr, y + Math.sin(a)*rr*.72); } b.closePath(); b.fill();
+      b.fillStyle = "rgba(255,250,235,.25)"; b.beginPath(); b.ellipse(x - r*.25, y - r*.25, r*.35, r*.2, -.4, 0, TAU); b.fill(); }
+    b.strokeStyle = "rgba(255,235,200,.18)"; b.lineWidth = 1; [yB, yC].forEach(f => { b.beginPath(); b.moveTo(0, f(0)); for (let x=6;x<=W+6;x+=6) b.lineTo(x, f(x)); b.stroke(); });
+    b.font = '600 11px "Zilla Slab", Georgia, serif'; b.textBaseline = "middle"; b.fillStyle = "rgba(255,238,210,.75)";
+    b.fillText("A", 8, (yS(8)+yB(8))/2 + 9); b.fillText("B", 8, (yB(8)+yC(8))/2); b.fillText("C", 8, (yC(8)+H)/2);
+    // aspersores cada ~200 px y plantas en hilera entre ellos
+    const nS = Math.max(2, Math.round(W/200)), gap = W/nS;
+    SP = Array.from({length:nS}, (_, i) => ({x: gap*(i+.5), ph: rnd(0,TAU), per: rnd(6,8), acc: 0}));
+    P = []; for (let x = 14; x < W; x += rnd(30,36)) if (SP.every(q => Math.abs(q.x - x) > 12)) P.push({x, k: rnd(.92,1.12), ph: rnd(0,TAU), type: Math.random()<.45?1:0});
+    P.forEach(p => { const k = Math.round(rnd(4,6)); for (let i=0;i<k;i++) root(b, p.x, SY+1, Math.PI/2 + (i-(k-1)/2)*.42 + rnd(-.15,.15), rnd(30,58), 1.5, 0); });
+    // tubería de PVC enterrada que alimenta los aspersores
+    const py = SY + 17;
+    b.strokeStyle = "#7F8780"; b.lineWidth = 6.5; b.beginPath(); b.moveTo(0, py); b.lineTo(W, py); b.stroke();
+    b.strokeStyle = "#D8DDD6"; b.lineWidth = 4.5; b.beginPath(); b.moveTo(0, py); b.lineTo(W, py); b.stroke();
+    b.strokeStyle = "rgba(255,255,255,.7)"; b.lineWidth = 1; b.beginPath(); b.moveTo(0, py - 1.2); b.lineTo(W, py - 1.2); b.stroke();
+    SP.forEach(q => { b.fillStyle = "#7F8780"; b.fillRect(q.x - 4.5, py - 4.5, 9, 9); b.fillStyle = "#C9CEC8"; b.fillRect(q.x - 3.5, py - 3.5, 7, 7);
+      b.strokeStyle = "#3E4640"; b.lineWidth = 3.2; b.beginPath(); b.moveTo(q.x, py); b.lineTo(q.x, SY - RISE + 3); b.stroke();
+      b.strokeStyle = "rgba(255,255,255,.25)"; b.lineWidth = .8; b.beginPath(); b.moveTo(q.x - .8, SY); b.lineTo(q.x - .8, SY - RISE + 4); b.stroke(); });
+    // pasto en la superficie
+    const gg = b.createLinearGradient(0, SY-7, 0, SY+2); gg.addColorStop(0,"#B4D28F"); gg.addColorStop(1,"#8DB466");
+    b.fillStyle = gg; b.beginPath(); b.moveTo(0, SY+1); for (let x=0;x<=W+6;x+=6) b.lineTo(x, SY - 4 + 1.2*Math.sin(x*.19)); b.lineTo(W+6, SY+1); b.closePath(); b.fill();
+    for (let k=0;k<W/4;k++){ const x = rnd(0,W), y = SY - 2; b.strokeStyle = `rgba(${Math.random()<.5?"63,125,36":"120,165,80"},.6)`; b.lineWidth = .9;
+      b.beginPath(); b.moveTo(x, y); b.lineTo(x + rnd(-2,2), y - rnd(3,7)); b.stroke(); }
+    worms = Array.from({length: W > 700 ? 2 : 1}, (_, i) => newWorm(i ? W*.7 : W*.3));
+    drops = []; splash = [];
+    if (reduce){ for (let i=0;i<70;i++) step(1/30); }
+    draw();
+  }
+  function newWorm(x){ return {x: x ?? -40, dir: 1, y0: SY + rnd(30, 44), ph: rnd(0,TAU), v: rnd(8,11), trail: []}; }
+  const wy = (w, x) => w.y0 + 6*Math.sin(x/50 + w.ph);
+  // dirección del chorro: gira de derecha a izquierda pasando de frente (en la vista de lado el arco se acorta)
+  const az = q => Math.PI/2 + 1.35*Math.sin(t*TAU/q.per + q.ph);
+  function leaf(bx, by, ang, L, col){
+    const tx = bx + Math.sin(ang)*L, ty = by - Math.cos(ang)*L, mx = (bx+tx)/2, my = (by+ty)/2, w = L*.36, nx = Math.cos(ang)*w, ny = Math.sin(ang)*w;
+    ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(bx,by); ctx.quadraticCurveTo(mx+nx, my+ny, tx, ty); ctx.quadraticCurveTo(mx-nx, my-ny, bx, by); ctx.fill();
+    ctx.strokeStyle = "rgba(236,246,220,.6)"; ctx.lineWidth = .6; ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(mx + (tx-mx)*.6, my + (ty-my)*.6); ctx.stroke();
+  }
+  function plant(p){
+    const s = 1.05, y = SY - 3, h = 30*s*p.k, sw = reduce ? 0 : .08*Math.sin(t*1.1 - p.x*.012 + p.ph*.25), tx = p.x + sw*h*.5, ty = y - h, cy = y - h*.55;
+    ctx.strokeStyle = "#3F7D24"; ctx.lineWidth = 1.7; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(p.x, y); ctx.quadraticCurveTo(p.x, cy, tx, ty); ctx.stroke();
+    [[.32,-1,1],[.32,1,1],[.6,1,.85],[.6,-1,.85],[.88,-1,.62],[.88,1,.62]].forEach(([u, side, sz], i) => { const v = 1-u;
+      leaf(v*v*p.x + 2*v*u*p.x + u*u*tx, v*v*y + 2*v*u*cy + u*u*ty, side*(1.05 - u*.45) + sw*1.4, 10.5*s*sz*p.k, i%2 ? "#6DAA45" : "#579434"); });
+    if (p.type){ ctx.fillStyle = "#E3AE2A"; ctx.beginPath(); ctx.ellipse(tx, ty - 2.6*s, 2*s, 3.6*s, sw, 0, TAU); ctx.fill(); }
+  }
+  function step(dt){
+    t += dt;
+    SP.forEach(q => { q.acc += dt*85;   // gotas por segundo de cada aspersor
+      const a = az(q), hx = q.x, hy = SY - RISE;
+      while (q.acc >= 1){ q.acc--;
+        const mist = Math.random() < .3, v = V*(mist ? rnd(.35,.75) : rnd(.92,1.06)), el = rnd(.78,.92), a2 = a + rnd(-.06,.06);
+        drops.push({x: hx + Math.cos(a2)*3, y: hy - 2, vx: v*Math.cos(el)*Math.cos(a2), vy: -v*Math.sin(el), r: mist ? rnd(.5,.9) : rnd(.9,1.5), m: mist}); }
+    });
+    drops.forEach(d => { d.vy += G*dt; d.x += d.vx*dt; d.y += d.vy*dt;
+      if (d.y >= SY - 2){ d.dead = true; if (!d.m && Math.random() < .35) splash.push({x: d.x, y: SY - 2, age: 0}); } });
+    drops = drops.filter(d => !d.dead && d.x > -10 && d.x < W + 10);
+    splash.forEach(q => q.age += dt); splash = splash.filter(q => q.age < .35);
+    worms.forEach(w => { w.x += w.dir*w.v*dt;
+      const last = w.trail[w.trail.length-1]; if (!last || Math.abs(last.x - w.x) > 2.5) w.trail.push({x: w.x, y: wy(w, w.x), t});
+      w.trail = w.trail.filter(q => t - q.t < 14);
+      if (w.dir > 0 ? w.x - 40 > W : w.x + 40 < 0){ const d = Math.random() < .5 ? 1 : -1; Object.assign(w, newWorm(d > 0 ? -40 : W + 40), {dir: d}); }
+    });
+  }
+  function worm(w){
+    if (w.trail.length > 1){ ctx.lineCap = "round"; ctx.lineJoin = "round";
+      for (let i=1;i<w.trail.length;i++){ const a = w.trail[i-1], b2 = w.trail[i], f = 1 - (t - b2.t)/14;
+        ctx.strokeStyle = `rgba(32,20,8,${(.3*f).toFixed(3)})`; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b2.x, b2.y); ctx.stroke(); } }
+    const N = 16;
+    for (let i=N;i>=0;i--){ const x = w.x - w.dir*i*2.1, y = wy(w, x), q = i/N;
+      const r = 1.8*(1 - q*q*.45)*(1 + (reduce ? 0 : .14*Math.sin(t*6 - i*.75)));
+      ctx.fillStyle = i >= 3 && i <= 5 ? "#B5685C" : (i%2 ? "#C88474" : "#CF8F7F");
+      ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
+  }
+  function sprinkler(q){
+    const a = az(q), hx = q.x, hy = SY - RISE, dir = Math.cos(a), tilt = -Math.atan2(Math.sin(.85), Math.abs(dir)*Math.cos(.85) + .001);
+    ctx.save(); ctx.translate(hx, hy);
+    ctx.fillStyle = "#3E4640"; ctx.fillRect(-2.6, -1, 5.2, 4);
+    ctx.fillStyle = "#C9A23A"; ctx.beginPath(); ctx.ellipse(0, -2.5, 3.4, 2.4, 0, 0, TAU); ctx.fill();
+    ctx.scale(dir >= 0 ? 1 : -1, 1); ctx.rotate(tilt);
+    ctx.fillStyle = "#A9831F"; ctx.fillRect(0, -1.3 - 2.5*Math.cos(tilt), 7 + 3*Math.abs(dir), 2.6);   // boquilla apuntando hacia el chorro
+    ctx.restore();
+  }
+  function rainbow(){
+    // de vez en cuando, un arcoíris tenue sobre el chorro del primer aspersor
+    const k = Math.max(0, Math.sin(t*TAU/16)); if (k < .02 || !SP.length) return;
+    const q = SP[0], R = 74, cols = ["230,80,80","240,150,60","235,210,70","110,190,90","80,150,220","140,100,200"];
+    ctx.save(); ctx.lineWidth = 3;
+    cols.forEach((c, i) => { ctx.strokeStyle = `rgba(${c},${(.2*k).toFixed(3)})`; ctx.beginPath(); ctx.arc(q.x, SY - 4, R - i*3, Math.PI*1.08, Math.PI*1.92); ctx.stroke(); });
+    ctx.restore();
+  }
+  function draw(){
+    ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,cv.width,cv.height); ctx.drawImage(base,0,0); ctx.setTransform(dpr,0,0,dpr,0,0);
+    rainbow(); worms.forEach(worm); P.forEach(plant); SP.forEach(sprinkler);
+    ctx.lineCap = "round";
+    drops.forEach(d => { const sp = Math.hypot(d.vx, d.vy) || 1, L = d.m ? 1.2 : 3.4;
+      ctx.strokeStyle = d.m ? "rgba(170,215,245,.55)" : "rgba(95,165,225,.85)"; ctx.lineWidth = d.r*1.6;
+      ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - d.vx/sp*L, d.y - d.vy/sp*L); ctx.stroke(); });
+    splash.forEach(q => { const k = q.age/.35; ctx.strokeStyle = `rgba(120,185,235,${(.7*(1-k)).toFixed(3)})`; ctx.lineWidth = .9;
+      ctx.beginPath(); ctx.ellipse(q.x, q.y, 1.5 + k*4, .6 + k*1.4, 0, Math.PI, TAU); ctx.stroke(); });
+  }
+  // solo se anima y se dibuja cuando el final de la página está a la vista
+  function loop(now){ const dt = Math.min(.05,(now-last)/1000||0); last = now;
+    if (scrollY + innerHeight > box.offsetTop - 30){ step(dt); if (now-(loop.f||0) > 33){ loop.f = now; draw(); } }
+    raf = requestAnimationFrame(loop); }
+  const run = () => { cancelAnimationFrame(raf); if (!reduce){ last = performance.now(); raf = requestAnimationFrame(loop); } };
+  let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (box.clientWidth !== bw) build(); }, 200); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(build);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) run(); });
+  build(); run();
+})();
+
+// Las pestañas solo llevan fondo cuando quedan pegadas arriba
+(function(){
+  const nav = document.querySelector(".tabs"), mark = document.getElementById("tabsMark");
+  if (!("IntersectionObserver" in window) || !mark) { nav.classList.add("stuck"); return; }
+  new IntersectionObserver(es => nav.classList.toggle("stuck", !es[0].isIntersecting), {rootMargin:"-1px 0px 0px 0px"}).observe(mark);
+})();
+</script>
+</body>
+</html>
