@@ -1043,7 +1043,7 @@ $("rstNo").onclick = () => { $("rst").hidden = false; $("rstYes").hidden = true;
 $("rstYes").onclick = () => { S.a = new Set(); S.e = new Set(); S.x = new Set(); save(); render(); $("rstNo").onclick(); };
 
 // ---------- Cuenta: guardar en la nube con Firebase (solo en la versión publicada) ----------
-const FB_CONFIG = null;   // aquí va el bloque firebaseConfig del proyecto de Firebase de Agronomía
+const FB_CONFIG = {"apiKey": "AIzaSyAo8ZBX3t0lgiyf1RLv9JWsURBk95JDimI", "authDomain": "pensum-agronomia.firebaseapp.com", "projectId": "pensum-agronomia", "storageBucket": "pensum-agronomia.firebasestorage.app", "messagingSenderId": "706175900319", "appId": "1:706175900319:web:a21629e4d06d460ef6e0aa"};
 const FB_V = "10.12.2";
 (function cloud(){
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); } catch(e){}
